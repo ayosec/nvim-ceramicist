@@ -29,15 +29,6 @@ local function new_session(new_id)
         require("ceramicist.runner").run(session, cmdline, replace, win_opts)
     end
 
-
-    session.term_channel_id = vim.api.nvim_open_term(buffer, {
-        on_input = function (_, _, _, data)
-            if session.running_job_id then
-                vim.api.nvim_chan_send(session.running_job_id, data)
-            end
-        end
-    })
-
     SESSIONS[new_id] = session
 
     local win_resized_events = vim.api.nvim_create_autocmd("WinResized", {

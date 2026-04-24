@@ -24,6 +24,17 @@ function M.run(session, cmdline, replace, win_opts)
         return
     end
 
+    if session.term_channel_id == 0 then
+        -- Initialize the terminal after creating the window.
+        session.term_channel_id = vim.api.nvim_open_term(session.buffer, {
+            on_input = function (_, _, _, data)
+                if session.running_job_id then
+                    vim.api.nvim_chan_send(session.running_job_id, data)
+                end
+            end
+        })
+    end
+
     -- When the command is executed with bang, send a "Reset to Initial State"
     -- to remove the previous content.
     if replace then
