@@ -40,6 +40,29 @@ local function new_session(new_id)
 
     SESSIONS[new_id] = session
 
+    local win_resized_events = vim.api.nvim_create_autocmd("WinResized", {
+        callback = function()
+            local job_id = session.running_job_id
+            local windows = vim.v.event.windows
+
+            if not (job_id and windows) then
+                return
+            end
+
+            for _, winid in pairs(windows) do
+                if vim.api.nvim_win_get_buf(winid) == buffer then
+                    vim.fn.jobresize(
+                        job_id,
+                        vim.fn.winwidth(winid),
+                        vim.fn.winheight(winid)
+                    )
+
+                    return
+                end
+            end
+        end,
+    })
+
     -- Delete session when the buffer is deleted.
     vim.api.nvim_create_autocmd("BufDelete", {
         buffer = buffer,
@@ -52,6 +75,8 @@ local function new_session(new_id)
                 vim.fn.jobstop(session.running_job_id)
                 session.running_job_id = nil
             end
+
+            vim.api.nvim_del_autocmd(win_resized_events)
         end,
     })
 
@@ -66,7 +91,7 @@ function M.get_session(session_id)
     if session_id then
         session = SESSIONS[session_id]
     else
-        -- By default use the oldest session.
+        -- By default use the session with the lowest-id.
         for sid, s in pairs(SESSIONS) do
             if session == nil or sid < session.id then
                 session = s

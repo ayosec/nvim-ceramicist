@@ -53,8 +53,8 @@ function M.run(session, cmdline, replace, win_opts)
         },
         {
             pty = true,
-            width = 80,
-            height = 24,
+            width = vim.fn.winwidth(window),
+            height = vim.fn.winheight(window),
 
             on_exit = function(_, exit_code)
                 local chan_id = session.term_channel_id
