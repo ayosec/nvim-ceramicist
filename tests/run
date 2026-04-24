@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+shopt -s globstar
+
+cd "${0%/*}/.."
+
+
+: "${MAX_JOBS:=4}"
+WORKDIR=$(mktemp -d)
+
+RUNNING=0
+FAILED=0
+waitjob() {
+    if ! wait -n
+    then
+        FAILED=$((FAILED + 1))
+    fi
+    RUNNING=$((RUNNING - 1))
+}
+
+for test in tests/**/test_*.lua
+do
+    RUNNING=$((RUNNING + 1))
+
+    while [ "$RUNNING" -gt "$MAX_JOBS" ]
+    do
+        waitjob
+    done
+
+    (
+        export HOME="$WORKDIR/home.$$"
+        export XDG_CONFIG_HOME="$HOME/config"
+        export XDG_DATA_HOME="$HOME/share"
+        export XDG_STATE_HOME="$HOME/state"
+
+        status=31mFAIL
+        exitcode=1
+        if nvim --clean --headless -c "set rtp^=$PWD" -l "$test"
+        then
+            status=32mOK
+            exitcode=0
+        fi
+
+        exec 9<>"$WORKDIR/stdout.lock"
+        flock -n 9
+
+        printf ' - %s: \e[%s\e[m\n' "$test" "$status"
+        exit $exitcode
+    ) &
+done
+
+
+# Wait for all jobs
+while [ "$RUNNING" -ne 0 ]
+do
+    waitjob
+done
+
+if [ "$FAILED" -ne 0 ]
+then
+    printf '\n\n\e[31mFAILED: %d\e[m' "$FAILED"
+    printf '\n\nTemp. files at %s\n\n' "$WORKDIR"
+    exit 1
+else
+    rm -r "$WORKDIR"
+fi
