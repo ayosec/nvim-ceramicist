@@ -60,7 +60,7 @@ end
 
 --- @param session_id integer|nil
 --- @return ceramicist.Session
-M.get_session = function(session_id)
+function M.get_session(session_id)
     local session = nil
 
     if session_id then

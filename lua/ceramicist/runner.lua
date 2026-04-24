@@ -4,7 +4,7 @@ local M = {}
 --- @param cmdline string
 --- @param replace? boolean
 --- @param win_opts "tab"|vim.api.keyset.win_config
-M.run = function(session, cmdline, replace, win_opts)
+function M.run(session, cmdline, replace, win_opts)
     -- Interrupt the previous job if it is still running.
     if session.running_job_id then
         vim.fn.jobstop(session.running_job_id)

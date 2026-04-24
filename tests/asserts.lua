@@ -13,7 +13,7 @@ local function error(message)
     vim.cmd "1cq"
 end
 
-M.eq = function(a, b)
+function M.eq(a, b)
     if not vim.deep_equal(a, b) then
         error(string.format(
             "%s not equal to %s",

@@ -21,7 +21,7 @@ end
 
 
 --- @param name string
-M.create_user_command = function(name)
+function M.create_user_command(name)
     vim.api.nvim_create_user_command(name, cmd_impl, {
         force = true,
         desc = "Run command in a Ceramicist buffer",

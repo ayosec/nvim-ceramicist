@@ -3,7 +3,7 @@ local M = {}
 --- @param mods vim.api.keyset.cmd.mods
 --- @return "tab"|vim.api.keyset.win_config
 --- @private
-M.parse_win_options = function(mods)
+function M.parse_win_options(mods)
     if mods.tab ~= -1 then
         return "tab"
     end
