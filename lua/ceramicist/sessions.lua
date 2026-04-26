@@ -7,7 +7,6 @@ local M = {}
 --- @return ceramicist.Session
 local function new_session(context, new_id)
     local buffer = vim.api.nvim_create_buf(true, false)
-    vim.b[buffer].ceramicist_session_id = new_id
 
     --- @class ceramicist.Session
     local session = {
@@ -25,6 +24,8 @@ local function new_session(context, new_id)
         --- @type integer|nil
         running_job_id = nil,
     }
+
+    vim.b[buffer].ceramicist_session = function() return session end
 
     --- @param cmdline string
     --- @param replace? boolean

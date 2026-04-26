@@ -3,14 +3,13 @@ local asserts = require("tests.asserts")
 local M = {}
 
 --- Wait up to 200ms to get a valid session.
---- @param context ceramicist.Context
-function M.current(context)
+function M.current()
     assert(
-        vim.wait(200, function() return vim.b.ceramicist_session_id ~= nil end) == true,
+        vim.wait(200, function() return vim.b.ceramicist_session ~= nil end) == true,
         "Timeout waiting for session"
     )
 
-    local session = require("ceramicist.sessions").get_session(context, vim.b.ceramicist_session_id)
+    local session = vim.b.ceramicist_session()
     assert(vim.fn.bufwinid(session.buffer) ~= -1, "No window")
     return session
 end

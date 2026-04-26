@@ -41,27 +41,27 @@ vim.api.nvim_create_autocmd("User", {
 vim.cmd "C echo ABC"
 vim.wait(1000, function() return jobs_completed == 1 end)
 asserts.eq(last_cmdline, "echo ABC")
-asserts.eq(last_session, sessions.current(context))
+asserts.eq(last_session, sessions.current())
 
 vim.cmd "C seq 3"
 vim.wait(1000, function() return jobs_completed == 2 end)
 asserts.eq(last_cmdline, "seq 3")
-asserts.eq(last_session, sessions.current(context))
+asserts.eq(last_session, sessions.current())
 
 vim.cmd "C false"
 vim.wait(1000, function() return jobs_completed == 3 end)
 asserts.eq(last_cmdline, "false")
-asserts.eq(last_session, sessions.current(context))
+asserts.eq(last_session, sessions.current())
 
 vim.cmd "C kill -9 $$"
 vim.wait(1000, function() return jobs_completed == 4 end)
 asserts.eq(last_cmdline, "kill -9 $$")
-asserts.eq(last_session, sessions.current(context))
+asserts.eq(last_session, sessions.current())
 
 asserts.eq(jobs_started, jobs_completed)
 
 -- Verify the output.
-local output = sessions.output(sessions.current(context))
+local output = sessions.output(sessions.current())
 
 asserts.eq(
     { "ABC", "1", "2", "3" },
@@ -91,3 +91,6 @@ asserts.eq(
         :map(function(e) return e[4].virt_text[1][1] end)
         :totable()
 )
+
+-- Verify that `vim.b` returns the same reference.
+assert(vim.b.ceramicist_session() == context.sessions[1])
