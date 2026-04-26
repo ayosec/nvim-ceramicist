@@ -1,4 +1,26 @@
+local utils = require("ceramicist.utils")
+
 local M = {}
+
+
+--- @param session ceramicist.Session
+--- @param cmdline string
+local function emit_header(session, cmdline)
+    if session.term_channel_id == nil then return end
+
+    session.add_extmark {
+        hl_mode = "combine",
+        line_hl_group = "CeramicistHeaderLine",
+        virt_text_pos = "overlay",
+        virt_text = { { utils.escape_control_chars(cmdline), "" } }
+    }
+
+    -- Send OSC 133 sequence to allow using [[ and ]] mappings.
+    vim.api.nvim_chan_send(
+        session.term_channel_id,
+        "\x1B]133;A\x07\n"
+    )
+end
 
 --- @param session ceramicist.Session
 --- @param cmdline string
@@ -24,7 +46,13 @@ function M.run(session, cmdline, replace, win_opts)
         return
     end
 
-    if session.term_channel_id == 0 then
+    -- The band modifier clears the content of the terminal before
+    -- executing the job.
+    if replace and session.term_channel_id ~= nil then
+        session.clear()
+    end
+
+    if session.term_channel_id == nil then
         -- Initialize the terminal after creating the window.
         session.term_channel_id = vim.api.nvim_open_term(session.buffer, {
             on_input = function (_, _, _, data)
@@ -35,15 +63,9 @@ function M.run(session, cmdline, replace, win_opts)
         })
     end
 
-    -- When the command is executed with bang, send a "Reset to Initial State"
-    -- to remove the previous content.
-    if replace then
-        vim.api.nvim_chan_send(session.term_channel_id, "\x1Bc")
-    end
-
-    vim.api.nvim_chan_send(session.term_channel_id, "$ " .. cmdline .. "\n")
-
     assert(session.term_channel_id ~= 0, "Missing terminal channel")
+
+    emit_header(session, cmdline)
 
     vim.fn.win_gotoid(window)
     vim.cmd.startinsert()
@@ -56,6 +78,7 @@ function M.run(session, cmdline, replace, win_opts)
 
     local job_id = -1
 
+    session.last_command = cmdline
     job_id = vim.fn.jobstart(
         {
             vim.o.shell,
@@ -70,8 +93,17 @@ function M.run(session, cmdline, replace, win_opts)
             on_exit = function(_, exit_code)
                 local chan_id = session.term_channel_id
 
-                if chan_id ~= 0 then
-                    vim.api.nvim_chan_send(chan_id, "\n\nEXIT: " .. exit_code .. "\n")
+                if chan_id ~= nil then
+                    session.add_extmark {
+                        hl_mode = "combine",
+                        line_hl_group = exit_code == 0
+                            and "CeramicistFooterSuccess"
+                            or "CeramicistFooterFail",
+                        virt_text_pos = "overlay",
+                        virt_text = { { "Exit code: " .. exit_code, "" } }
+                    }
+
+                    vim.api.nvim_chan_send(session.term_channel_id, "\n")
                 end
 
                 -- Update the session only if it was not replaced by another one.
@@ -82,10 +114,28 @@ function M.run(session, cmdline, replace, win_opts)
                         vim.cmd.stopinsert()
                     end
                 end
+
+                -- Nvim 0.12 does not remove extmarks when lines are discarded
+                -- in the scrollback. Those are accumulated at the first line
+                -- of the buffer.
+                --
+                -- As a workaround, when a job is finished, and the scrollback
+                -- is full, extmarks on the first line are removed.
+                local buffer = session.buffer
+                local max_lines = vim.fn.winheight(window) + vim.bo[buffer].scrollback
+
+                if max_lines <= vim.api.nvim_buf_line_count(buffer) then
+                    vim.defer_fn(
+                        function() vim.api.nvim_buf_clear_namespace(buffer, -1, 0, 1) end,
+                        50
+                    )
+                end
             end,
 
             on_stdout = function(_, data)
                 local chan_id = session.term_channel_id
+
+                if chan_id == nil then return end
 
                 for i, line in ipairs(data) do
                     if i > 1 then

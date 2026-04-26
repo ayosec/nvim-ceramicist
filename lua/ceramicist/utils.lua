@@ -27,4 +27,22 @@ function M.parse_win_options(mods)
 end
 
 
+--- @param cmdline string
+function M.escape_control_chars(cmdline)
+    local tr = {
+        ["\b"] = "\\b",
+        ["\n"] = "\\n",
+        ["\r"] = "\\r",
+        ["\t"] = "\\t",
+        ["\x1b"] = "\\e",
+    }
+
+    local function map(chr)
+        return tr[chr] or string.format("\\x%02x", string.byte(chr))
+    end
+
+    return string.gsub(cmdline, "%c", map)
+end
+
+
 return M

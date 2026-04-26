@@ -1,3 +1,5 @@
+local extmarks = require("ceramicist.extmarks")
+
 local M = {}
 
 --- @return { [integer]: ceramicist.Session }
@@ -13,11 +15,15 @@ local function new_session(new_id)
     local session = {
         id = new_id,
         buffer = buffer,
-        last_command = '',
 
-        -- Channel to the job output to the terminal.
-        term_channel_id = 0,
+        --- @type string|nil
+        last_command = nil,
 
+        --- Channel to send data to the terminal instance.
+        --- @type integer|nil
+        term_channel_id = nil,
+
+        --- Job running in the session, created with |jobstart()|.
         --- @type integer|nil
         running_job_id = nil,
     }
@@ -28,6 +34,17 @@ local function new_session(new_id)
     session.run = function(cmdline, replace, win_opts)
         require("ceramicist.runner").run(session, cmdline, replace, win_opts)
     end
+
+    session.clear = function()
+        -- Sends the equivalent of a `tput clear` to remove the content.
+        if session.term_channel_id ~= nil then
+            vim.api.nvim_chan_send(session.term_channel_id, "\x1b[H\x1b[2J\x1b[3J")
+        end
+
+        vim.api.nvim_buf_clear_namespace(buffer, -1, 0, -1)
+    end
+
+    session.add_extmark = extmarks.extmark_handler(session)
 
     SESSIONS[new_id] = session
 
@@ -60,7 +77,7 @@ local function new_session(new_id)
         once = true,
         callback = function()
             SESSIONS[new_id] = nil
-            session.term_channel_id = 0
+            session.term_channel_id = nil
 
             if session.running_job_id ~= nil then
                 vim.fn.jobstop(session.running_job_id)
