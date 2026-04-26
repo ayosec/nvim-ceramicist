@@ -57,7 +57,7 @@ local function new_session(context, new_id)
             if session.last_job == nil then
                 vim.notify(
                     "No command to rerun. Type a new command as the arguments for :"
-                        .. context.config.user_command,
+                        .. context.config.user_command.name,
                     vim.log.levels.ERROR
                 )
                 return

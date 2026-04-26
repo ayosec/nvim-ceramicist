@@ -3,12 +3,24 @@ local M = {}
 function M.defaults()
     --- @class ceramicist.Config
     local config = {
-        --- Name of the user command to open execute a job.
-        ---
-        --- If `nil`, no command will be created.
-        ---
-        --- @type string|nil
-        user_command = "Ceramicist",
+        --- @class ceramicist.UserCommandSpec
+        user_command = {
+            --- Name of the user command to open execute a job.
+            ---
+            --- If `nil`, no command will be created.
+            ---
+            --- @type string|nil
+            name = "Ceramicist",
+
+            --- Completion scheme for the user command.
+            ---
+            --- This value is set as the `complete` option for |nvim_create_user_command()|
+            --- See |lua-guide-commands-create| and |:command-complete|
+            --- for details.
+            ---
+            --- @type any
+            complete = "shellcmdline",
+        },
 
         --- Status line for Ceramicist windows.
         ---

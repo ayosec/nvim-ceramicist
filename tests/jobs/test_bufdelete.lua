@@ -13,7 +13,7 @@ asserts.eq(0, ffi.C.mkfifo(fifo, 384))
 
 local fifo_is_open = false
 
-ceramicist.setup { user_command = "C" }
+ceramicist.setup { user_command = { name = "C" } }
 
 local buffer = -1
 vim.api.nvim_create_autocmd("User", {

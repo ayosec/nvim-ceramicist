@@ -11,7 +11,7 @@ vim.api.nvim_create_autocmd("User", {
     end
 })
 
-local context = ceramicist.setup { user_command = "C" }
+local context = ceramicist.setup { user_command = { name = "C" } }
 
 --- @param command string
 --- @param session_id integer

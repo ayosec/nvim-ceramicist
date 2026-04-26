@@ -3,7 +3,7 @@ local sessions = require("tests.sessions")
 local ceramicist = require("ceramicist")
 
 local context = ceramicist.setup {
-    user_command = "C",
+    user_command = { name = "C" },
     output = {
         footer = function(exit, duration)
             assert(duration > 0)

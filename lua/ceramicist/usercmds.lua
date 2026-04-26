@@ -4,8 +4,8 @@ local utils = require("ceramicist.utils")
 local M = {}
 
 --- @param context ceramicist.Context
---- @param name string
-function M.create_user_command(context, name)
+--- @param spec ceramicist.UserCommandSpec
+function M.create_user_command(context, spec)
     --- @param args vim.api.keyset.create_user_command.command_args
     local function cmd_impl(args)
         local session_id = nil
@@ -34,14 +34,14 @@ function M.create_user_command(context, name)
         session.run(args.args, args.bang, win_opts)
     end
 
-    vim.api.nvim_create_user_command(name, cmd_impl, {
+    vim.api.nvim_create_user_command(spec.name, cmd_impl, {
         force = true,
         desc = "Run command in a Ceramicist buffer",
         count = true,
         addr = "other",
         bang = true,
         nargs = "*",
-        complete = "shellcmdline"
+        complete = spec.complete,
     })
 end
 
