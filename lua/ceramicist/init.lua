@@ -6,6 +6,7 @@ local M = {}
 --- | '"Header"'
 --- | '"Normal"'
 --- | '"StatusLineJobStatus"'
+--- | '"WatchMode"'
 
 
 --- @param config ceramicist.Config
@@ -34,6 +35,8 @@ function M.setup(config)
         require("ceramicist.usercmds").create_user_command(context, config.user_command)
     end
 
+    require("ceramicist.watchmode").setup()
+
     -- Default highlights
     local hl = vim.api.nvim_set_hl
     hl(0, context.hl("Normal"), { default = true  })
@@ -42,7 +45,8 @@ function M.setup(config)
     hl(0, context.hl("FooterSuccess"), { link = "DiagnosticVirtualLinesOk", default = true })
     hl(0, context.hl("FooterFail"), { link = "DiagnosticVirtualLinesError", default = true })
 
-    hl(0, context.hl("StatusLineJobStatus"), { dim = true, default = true })
+    hl(0, context.hl("StatusLineJobStatus"), { italic = true, default = true })
+    hl(0, context.hl("WatchMode"), { italic = true, default = true })
 
     return context
 end

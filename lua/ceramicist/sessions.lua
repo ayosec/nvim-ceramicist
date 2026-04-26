@@ -17,6 +17,9 @@ local function new_session(context, new_id)
         id = new_id,
         buffer = buffer,
 
+        --- @type integer|nil
+        watch_mode_autocmd = nil,
+
         --- @type ceramicist.LastJob|nil
         last_job = nil,
 
@@ -32,22 +35,24 @@ local function new_session(context, new_id)
     vim.b[buffer].ceramicist_session = function() return session end
 
     vim.b[buffer].ceramicist_statusline = function()
-        local job_status = ""
+        local action = ""
         local cmdline = ""
 
-        if session.running_job_id ~= nil then
-            job_status = "%#" .. context.hl("StatusLineJobStatus") .. "#RUNNING%##   "
+        if session.is_running() then
+            action = "%#" .. context.hl("StatusLineJobStatus") .. "#RUNNING%##   "
+        elseif session.is_watching() then
+            action = "%#" .. context.hl("WatchMode") .. "#WATCH%##   "
         end
 
         if session.last_job ~= nil then
             cmdline = string.gsub(session.last_job.cmdline, "%%", "%%%%")
         end
 
-        return string.format("[#%s]   %s%s", new_id, job_status, cmdline)
+        return string.format("[#%s]   %s%s", new_id, action, cmdline)
     end
 
     --- @param cmdline string
-    --- @param replace? boolean
+    --- @param replace boolean
     --- @param win_opts "tab"|vim.api.keyset.win_config
     session.run = function(cmdline, replace, win_opts)
         local run = require("ceramicist.runner").run
@@ -67,15 +72,18 @@ local function new_session(context, new_id)
             cmdline = session.last_job.cmdline
         end
 
-        run(context, cwd, session, cmdline, replace, win_opts)
+        run(context, cwd, session, cmdline, replace, true, win_opts)
     end
 
+    --- Rerun the last job in the session if the window is visible.
+    ---
+    --- Focus is kept in the window before the rerun.
     session.rerun = function()
         local lj = session.last_job
         if lj == nil then return end
 
         local run = require("ceramicist.runner").run
-        run(context, lj.cwd, session, lj.cmdline, false, {})
+        run(context, lj.cwd, session, lj.cmdline, false, false, {})
     end
 
     session.clear = function()
@@ -96,6 +104,17 @@ local function new_session(context, new_id)
             )
         end
     end
+
+    session.redraw_statusline = function()
+        vim.api.nvim__redraw {
+            buf = buffer,
+            statusline = true,
+        }
+    end
+
+    session.is_running = function() return session.running_job_id ~= nil end
+
+    session.is_watching = function() return session.watch_mode_autocmd ~= nil end
 
     session.add_extmark = extmarks.extmark_handler(session)
 

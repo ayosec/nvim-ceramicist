@@ -28,9 +28,10 @@ end
 --- @param cwd string|nil
 --- @param session ceramicist.Session
 --- @param cmdline string
---- @param replace? boolean
+--- @param replace boolean
+--- @param grab_window_focus boolean
 --- @param win_opts "tab"|vim.api.keyset.win_config
-function M.run(context, cwd, session, cmdline, replace, win_opts)
+function M.run(context, cwd, session, cmdline, replace, grab_window_focus, win_opts)
     local config = context.config
 
     if cwd == nil then
@@ -44,20 +45,20 @@ function M.run(context, cwd, session, cmdline, replace, win_opts)
 
     -- Reuse a window if the buffer is already visible.
     local window = vim.fn.bufwinid(session.buffer)
-    local has_window = window ~= -1
-    if has_window then
-        vim.fn.win_gotoid(window)
-    elseif win_opts == "tab" then
-        local tab = vim.api.nvim_open_tabpage(session.buffer, true, {})
-        window = vim.api.nvim_tabpage_get_win(tab)
-    elseif type(win_opts) == "table" then
-        window = vim.api.nvim_open_win(session.buffer, true, win_opts)
-    else
-        assert(false, "Unreachable")
-        return
-    end
+    if window == -1 then
+        if not grab_window_focus then
+            -- Skip run if the session is not in a visible window.
+            return
+        elseif win_opts == "tab" then
+            local tab = vim.api.nvim_open_tabpage(session.buffer, true, {})
+            window = vim.api.nvim_tabpage_get_win(tab)
+        elseif type(win_opts) == "table" then
+            window = vim.api.nvim_open_win(session.buffer, true, win_opts)
+        else
+            assert(false, "Unreachable")
+            return
+        end
 
-    if not has_window then
         local winhl = vim.wo[window].winhighlight
         if winhl ~= "" then winhl = winhl .. "," end
         vim.wo[window][0].winhighlight = winhl .. "Normal:" .. context.hl("Normal")
@@ -91,11 +92,21 @@ function M.run(context, cwd, session, cmdline, replace, win_opts)
     end
 
     assert(session.term_channel_id ~= 0, "Missing terminal channel")
+    assert(vim.api.nvim_win_is_valid(window), "Invalid window ID")
 
     emit_header(config, session, cmdline)
 
-    vim.fn.win_gotoid(window)
-    vim.cmd.startinsert()
+    if grab_window_focus then
+        -- Focus the window and start TERMINAL mode, so users can interact
+        -- with the job, or interrupting it with <C-c>, immediately.
+        vim.fn.win_gotoid(window)
+        vim.cmd.startinsert()
+    else
+        -- Do not change the focused window, but ensure that cursor
+        -- is at the end, so the output from the job updates scroll.
+        local lines = vim.api.nvim_buf_line_count(session.buffer)
+        vim.api.nvim_win_set_cursor(window, { lines, 0 })
+    end
 
     vim.api.nvim_buf_set_name(session.buffer, string.format(
         "[#%s] %s",
@@ -176,7 +187,7 @@ function M.run(context, cwd, session, cmdline, replace, win_opts)
                         )
                     end
 
-                    vim.api.nvim__redraw { buf = session.buffer, statusline = true }
+                    session.redraw_statusline()
                 end
 
                 vim.api.nvim_exec_autocmds("User", {
@@ -216,7 +227,7 @@ function M.run(context, cwd, session, cmdline, replace, win_opts)
         }
     })
 
-    vim.api.nvim__redraw { buf = session.buffer, statusline = true }
+    session.redraw_statusline()
 end
 
 return M
