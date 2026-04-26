@@ -27,13 +27,23 @@ function M.parse_win_options(mods)
 end
 
 
---- @param cmdline string
-function M.escape_control_chars(cmdline)
+--- Escape the control characters in `str` to their equivalents
+--- in `\xNN` format. Some characters (like `\n` or `\t`) are
+--- translated to their single-letter form.
+---
+--- Return the escaped string, and the number of escaped chars.
+---
+--- @param str string
+--- @return string, integer
+function M.escape_control_chars(str)
     local tr = {
+        ["\a"] = "\\a",
         ["\b"] = "\\b",
+        ["\f"] = "\\f",
         ["\n"] = "\\n",
         ["\r"] = "\\r",
         ["\t"] = "\\t",
+        ["\v"] = "\\v",
         ["\x1b"] = "\\e",
     }
 
@@ -41,7 +51,37 @@ function M.escape_control_chars(cmdline)
         return tr[chr] or string.format("\\x%02x", string.byte(chr))
     end
 
-    return string.gsub(cmdline, "%c", map)
+    return string.gsub(str, "%c", map)
+end
+
+
+--- Convert a duration in nanoseconds to an easier-to-read
+--- representation. For example, `123456` returns `"123 μs"`.
+---
+--- @param nanos number
+--- @return string
+function M.format_duration(nanos)
+    local scale = 1
+
+    --- @param initscale integer
+    --- @param base integer
+    --- @param units string[]
+    --- @return string|nil
+    local function for_units(initscale, base, units)
+        scale = scale * initscale
+        for _, unit in ipairs(units) do
+            local next_scale = scale * base
+            if nanos < next_scale then
+                return string.format("%d %s", math.floor(nanos / scale + 0.5), unit)
+            end
+
+            scale = next_scale
+        end
+    end
+
+    return for_units(1, 1000, { "ns", "μs", "ms", "s" })
+        or for_units(60 / 1000, 60, { "m", "h" })
+        or string.format("%d d", math.floor(nanos / 8.64e13 + 0.5))
 end
 
 

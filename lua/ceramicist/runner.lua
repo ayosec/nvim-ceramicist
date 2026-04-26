@@ -1,4 +1,4 @@
-local utils = require("ceramicist.utils")
+local config = require("ceramicist.config")
 
 local M = {}
 
@@ -8,18 +8,21 @@ local M = {}
 local function emit_header(session, cmdline)
     if session.term_channel_id == nil then return end
 
+    if session.last_command ~= nil then
+        session.add_empty_lines(config.current.output.gap)
+    end
+
     session.add_extmark {
         hl_mode = "combine",
-        line_hl_group = "CeramicistHeaderLine",
+        line_hl_group = "CeramicistHeader",
         virt_text_pos = "overlay",
-        virt_text = { { utils.escape_control_chars(cmdline), "" } }
+        virt_text = config.current.output.header(cmdline),
     }
 
     -- Send OSC 133 sequence to allow using [[ and ]] mappings.
-    vim.api.nvim_chan_send(
-        session.term_channel_id,
-        "\x1B]133;A\x07\n"
-    )
+    vim.api.nvim_chan_send(session.term_channel_id, "\x1B]133;A\x07\r\n")
+
+    session.add_empty_lines(config.current.output.padding)
 end
 
 --- @param session ceramicist.Session
@@ -77,6 +80,7 @@ function M.run(session, cmdline, replace, win_opts)
     ))
 
     local job_id = -1
+    local start_time = vim.loop.hrtime()
 
     session.last_command = cmdline
     job_id = vim.fn.jobstart(
@@ -91,16 +95,27 @@ function M.run(session, cmdline, replace, win_opts)
             height = vim.fn.winheight(window),
 
             on_exit = function(_, exit_code)
+                local duration = vim.loop.hrtime() - start_time
                 local chan_id = session.term_channel_id
 
+                if exit_code > 128 then
+                    local signum = exit_code - 128
+                    local signame = require("ceramicist.signalnames")[signum]
+                    if signame then
+                        exit_code = signame
+                    end
+                end
+
                 if chan_id ~= nil then
+                    session.add_empty_lines(config.current.output.padding)
+
                     session.add_extmark {
                         hl_mode = "combine",
                         line_hl_group = exit_code == 0
                             and "CeramicistFooterSuccess"
                             or "CeramicistFooterFail",
                         virt_text_pos = "overlay",
-                        virt_text = { { "Exit code: " .. exit_code, "" } }
+                        virt_text = config.current.output.footer(exit_code, duration),
                     }
 
                     vim.api.nvim_chan_send(session.term_channel_id, "\n")
@@ -130,6 +145,14 @@ function M.run(session, cmdline, replace, win_opts)
                         50
                     )
                 end
+
+                vim.api.nvim_exec_autocmds("User", {
+                    pattern = "Ceramicist/JobFinished",
+                    data = {
+                        session = session,
+                        cmdline = cmdline
+                    }
+                })
             end,
 
             on_stdout = function(_, data)
@@ -149,6 +172,14 @@ function M.run(session, cmdline, replace, win_opts)
     )
 
     session.running_job_id = job_id
+
+    vim.api.nvim_exec_autocmds("User", {
+        pattern = "Ceramicist/JobStarted",
+        data = {
+            session = session,
+            cmdline = cmdline
+        }
+    })
 end
 
 return M

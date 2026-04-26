@@ -1,0 +1,93 @@
+local asserts = require("tests.asserts")
+local sessions = require("tests.sessions")
+local ceramicist = require("ceramicist")
+
+ceramicist.setup {
+    user_command = "C",
+    output = {
+        footer = function(exit, duration)
+            assert(duration > 0)
+            return { { tostring(exit), "" } }
+        end,
+    }
+}
+
+local jobs_started = 0
+local jobs_completed = 0
+
+local last_cmdline = ""
+local last_session = nil
+
+vim.api.nvim_create_autocmd("User", {
+    pattern = "Ceramicist/JobStarted",
+    callback = function(args)
+        jobs_started = jobs_started + 1
+        last_cmdline = args.data.cmdline
+    end
+})
+
+
+vim.api.nvim_create_autocmd("User", {
+    pattern = "Ceramicist/JobFinished",
+    callback = function(args)
+        jobs_completed = jobs_completed + 1
+        asserts.eq(last_cmdline, args.data.cmdline)
+        last_session = args.data.session
+    end
+})
+
+
+-- Add some jobs to the session.
+vim.cmd "C echo ABC"
+vim.wait(1000, function() return jobs_completed == 1 end)
+asserts.eq(last_cmdline, "echo ABC")
+asserts.eq(last_session, sessions.current())
+
+vim.cmd "C seq 3"
+vim.wait(1000, function() return jobs_completed == 2 end)
+asserts.eq(last_cmdline, "seq 3")
+asserts.eq(last_session, sessions.current())
+
+vim.cmd "C false"
+vim.wait(1000, function() return jobs_completed == 3 end)
+asserts.eq(last_cmdline, "false")
+asserts.eq(last_session, sessions.current())
+
+vim.cmd "C kill -9 $$"
+vim.wait(1000, function() return jobs_completed == 4 end)
+asserts.eq(last_cmdline, "kill -9 $$")
+asserts.eq(last_session, sessions.current())
+
+asserts.eq(jobs_started, jobs_completed)
+
+-- Verify the output.
+local output = sessions.output(sessions.current())
+
+asserts.eq(
+    { "ABC", "1", "2", "3" },
+    vim.iter(output.lines):filter(function(l) return l ~= "" end):totable()
+)
+
+asserts.eq(
+    { "echo ABC", "seq 3", "false", "kill -9 $$" },
+    vim.iter(output.extmarks)
+        :filter(function(e) return e[4].line_hl_group == "CeramicistHeader" end)
+        :map(function(e) return e[4].virt_text[1][1] end)
+        :totable()
+)
+
+asserts.eq(
+    { "0", "0" },
+    vim.iter(output.extmarks)
+        :filter(function(e) return e[4].line_hl_group == "CeramicistFooterSuccess" end)
+        :map(function(e) return e[4].virt_text[1][1] end)
+        :totable()
+)
+
+asserts.eq(
+    { "1", "SIGKILL" },
+    vim.iter(output.extmarks)
+        :filter(function(e) return e[4].line_hl_group == "CeramicistFooterFail" end)
+        :map(function(e) return e[4].virt_text[1][1] end)
+        :totable()
+)

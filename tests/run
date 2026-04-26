@@ -29,10 +29,15 @@ do
     done
 
     (
-        export HOME="$WORKDIR/home.$$"
+        export HOME="$WORKDIR/home.$$.$SRANDOM"
+        mkdir "$HOME"
+
+        export NVIM_LOG_FILE="$HOME/nvim.log"
         export XDG_CONFIG_HOME="$HOME/config"
         export XDG_DATA_HOME="$HOME/share"
         export XDG_STATE_HOME="$HOME/state"
+
+        unset VIMRUNTIME VIMINIT
 
         status=31mFAIL
         exitcode=1

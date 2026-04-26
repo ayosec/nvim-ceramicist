@@ -44,6 +44,16 @@ local function new_session(new_id)
         vim.api.nvim_buf_clear_namespace(buffer, -1, 0, -1)
     end
 
+    --- @param count integer
+    session.add_empty_lines = function(count)
+        if session.term_channel_id ~= nil and count > 0 then
+            vim.api.nvim_chan_send(
+                session.term_channel_id,
+                string.rep("\r\n", count)
+            )
+        end
+    end
+
     session.add_extmark = extmarks.extmark_handler(session)
 
     SESSIONS[new_id] = session
