@@ -87,7 +87,7 @@ function M.run(session, cmdline, replace, win_opts)
     ))
 
     local job_id = -1
-    local start_time = vim.loop.hrtime()
+    local start_time = vim.uv.hrtime()
 
     session.last_command = cmdline
     job_id = vim.fn.jobstart(
@@ -102,7 +102,7 @@ function M.run(session, cmdline, replace, win_opts)
             height = vim.fn.winheight(window),
 
             on_exit = function(_, exit_code)
-                local duration = vim.loop.hrtime() - start_time
+                local duration = vim.uv.hrtime() - start_time
                 local chan_id = session.term_channel_id
 
                 if exit_code > 128 then
@@ -144,13 +144,15 @@ function M.run(session, cmdline, replace, win_opts)
                 -- As a workaround, when a job is finished, and the scrollback
                 -- is full, extmarks on the first line are removed.
                 local buffer = session.buffer
-                local max_lines = vim.fn.winheight(window) + vim.bo[buffer].scrollback
+                if vim.api.nvim_buf_is_valid(buffer) then
+                    local max_lines = vim.fn.winheight(window) + vim.bo[buffer].scrollback
 
-                if max_lines <= vim.api.nvim_buf_line_count(buffer) then
-                    vim.defer_fn(
-                        function() vim.api.nvim_buf_clear_namespace(buffer, -1, 0, 1) end,
-                        50
-                    )
+                    if max_lines <= vim.api.nvim_buf_line_count(buffer) then
+                        vim.defer_fn(
+                            function() vim.api.nvim_buf_clear_namespace(buffer, -1, 0, 1) end,
+                            50
+                        )
+                    end
                 end
 
                 vim.api.nvim_exec_autocmds("User", {
