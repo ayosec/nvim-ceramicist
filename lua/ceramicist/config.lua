@@ -10,6 +10,14 @@ function M.defaults()
         --- @type string|nil
         user_command = "Ceramicist",
 
+        --- Command to spawn a job from a `cmdline`.
+        ---
+        --- @param cmdline string
+        --- @return string[]
+        job_command = function(cmdline)
+            return { vim.o.shell, vim.o.shellcmdflag, cmdline }
+        end,
+
         --- Prefix for highlight groups.
         highlight_name_prefix = "Ceramicist",
 

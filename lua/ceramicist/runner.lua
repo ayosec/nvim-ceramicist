@@ -93,11 +93,7 @@ function M.run(context, session, cmdline, replace, win_opts)
 
     session.last_command = cmdline
     job_id = vim.fn.jobstart(
-        {
-            vim.o.shell,
-            vim.o.shellcmdflag,
-            cmdline,
-        },
+        config.job_command(cmdline),
         {
             pty = true,
             width = vim.fn.winwidth(window),
