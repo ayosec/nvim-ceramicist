@@ -1,23 +1,35 @@
-local config = require("ceramicist.config")
-
 local M = {}
 
---- @param opts ceramicist.Config
-function M.setup(opts)
-    opts = vim.tbl_deep_extend("force", config.defaults(), opts)
-    config.current = opts
+--- @param config ceramicist.Config
+--- @return ceramicist.Context
+function M.setup(config)
+    config = vim.tbl_deep_extend("force",
+        require("ceramicist.config").defaults(),
+        config
+    )
 
-    if opts.user_command and opts.user_command ~= "" then
-        require("ceramicist.usercmds").create_user_command(opts.user_command)
+    --- @class ceramicist.Context
+    local context = {
+        config = config,
+
+        --- @type { [integer]: ceramicist.Session }
+        sessions = {},
+    }
+
+    if config.user_command and config.user_command ~= "" then
+        require("ceramicist.usercmds").create_user_command(context, config.user_command)
     end
 
     -- Default highlights
     local hl = vim.api.nvim_set_hl
-    hl(0, "CeramicistNormal", { default = true  })
-    hl(0, "CeramicistHeader", { link = "DiagnosticVirtualLinesInfo", default = true  })
+    local np = config.highlight_name_prefix
+    hl(0, np .. "Normal", { default = true  })
+    hl(0, np .. "Header", { link = "DiagnosticVirtualLinesInfo", default = true  })
 
-    hl(0, "CeramicistFooterFail", { link = "DiagnosticVirtualLinesError", default = true  })
-    hl(0, "CeramicistFooterSuccess", { link = "DiagnosticVirtualLinesOk", default = true  })
+    hl(0, np .. "FooterFail", { link = "DiagnosticVirtualLinesError", default = true  })
+    hl(0, np .. "FooterSuccess", { link = "DiagnosticVirtualLinesOk", default = true  })
+
+    return context
 end
 
 return M

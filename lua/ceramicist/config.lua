@@ -10,6 +10,9 @@ function M.defaults()
         --- @type string|nil
         user_command = "Ceramicist",
 
+        --- Prefix for highlight groups.
+        highlight_name_prefix = "Ceramicist",
+
         output = {
             --- Number of empty lines to add before adding new jobs
             --- to an existing session.
@@ -53,7 +56,5 @@ function M.defaults()
 
     return config
 end
-
-M.current = M.defaults()
 
 return M

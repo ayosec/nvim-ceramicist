@@ -1,35 +1,37 @@
-local config = require("ceramicist.config")
-
 local M = {}
 
 
+--- @param config ceramicist.Config
 --- @param session ceramicist.Session
 --- @param cmdline string
-local function emit_header(session, cmdline)
+local function emit_header(config, session, cmdline)
     if session.term_channel_id == nil then return end
 
     if session.last_command ~= nil then
-        session.add_empty_lines(config.current.output.gap)
+        session.add_empty_lines(config.output.gap)
     end
 
     session.add_extmark {
         hl_mode = "combine",
-        line_hl_group = "CeramicistHeader",
+        line_hl_group = config.highlight_name_prefix .. "Header",
         virt_text_pos = "overlay",
-        virt_text = config.current.output.header(cmdline),
+        virt_text = config.output.header(cmdline),
     }
 
     -- Send OSC 133 sequence to allow using [[ and ]] mappings.
     vim.api.nvim_chan_send(session.term_channel_id, "\x1B]133;A\x07\r\n")
 
-    session.add_empty_lines(config.current.output.padding)
+    session.add_empty_lines(config.output.padding)
 end
 
+--- @param context ceramicist.Context
 --- @param session ceramicist.Session
 --- @param cmdline string
 --- @param replace? boolean
 --- @param win_opts "tab"|vim.api.keyset.win_config
-function M.run(session, cmdline, replace, win_opts)
+function M.run(context, session, cmdline, replace, win_opts)
+    local config = context.config
+
     -- Interrupt the previous job if it is still running.
     if session.running_job_id then
         vim.fn.jobstop(session.running_job_id)
@@ -53,7 +55,7 @@ function M.run(session, cmdline, replace, win_opts)
     if not has_window then
         local winhl = vim.wo[window].winhighlight
         if winhl ~= "" then winhl = winhl .. "," end
-        vim.wo[window].winhighlight = winhl .. "Normal:CeramicistNormal"
+        vim.wo[window][0].winhighlight = winhl .. "Normal:" .. config.highlight_name_prefix .. "Normal"
     end
 
     -- The band modifier clears the content of the terminal before
@@ -75,7 +77,7 @@ function M.run(session, cmdline, replace, win_opts)
 
     assert(session.term_channel_id ~= 0, "Missing terminal channel")
 
-    emit_header(session, cmdline)
+    emit_header(config, session, cmdline)
 
     vim.fn.win_gotoid(window)
     vim.cmd.startinsert()
@@ -114,15 +116,16 @@ function M.run(session, cmdline, replace, win_opts)
                 end
 
                 if chan_id ~= nil then
-                    session.add_empty_lines(config.current.output.padding)
+                    session.add_empty_lines(config.output.padding)
 
+                    local np = config.highlight_name_prefix
                     session.add_extmark {
                         hl_mode = "combine",
                         line_hl_group = exit_code == 0
-                            and "CeramicistFooterSuccess"
-                            or "CeramicistFooterFail",
+                            and (np .. "FooterSuccess")
+                            or (np .. "FooterFail"),
                         virt_text_pos = "overlay",
-                        virt_text = config.current.output.footer(exit_code, duration),
+                        virt_text = config.output.footer(exit_code, duration),
                     }
 
                     vim.api.nvim_chan_send(session.term_channel_id, "\n")

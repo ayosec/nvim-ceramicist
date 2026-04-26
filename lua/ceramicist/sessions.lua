@@ -2,12 +2,10 @@ local extmarks = require("ceramicist.extmarks")
 
 local M = {}
 
---- @return { [integer]: ceramicist.Session }
-local SESSIONS = {}
-
+--- @param context ceramicist.Context
 --- @param new_id integer
 --- @return ceramicist.Session
-local function new_session(new_id)
+local function new_session(context, new_id)
     local buffer = vim.api.nvim_create_buf(true, false)
     vim.b[buffer].ceramicist_session_id = new_id
 
@@ -32,7 +30,7 @@ local function new_session(new_id)
     --- @param replace? boolean
     --- @param win_opts "tab"|vim.api.keyset.win_config
     session.run = function(cmdline, replace, win_opts)
-        require("ceramicist.runner").run(session, cmdline, replace, win_opts)
+        require("ceramicist.runner").run(context, session, cmdline, replace, win_opts)
     end
 
     session.clear = function()
@@ -56,7 +54,7 @@ local function new_session(new_id)
 
     session.add_extmark = extmarks.extmark_handler(session)
 
-    SESSIONS[new_id] = session
+    context.sessions[new_id] = session
 
     local win_resized_events = vim.api.nvim_create_autocmd("WinResized", {
         callback = function()
@@ -86,7 +84,7 @@ local function new_session(new_id)
         buffer = buffer,
         once = true,
         callback = function()
-            SESSIONS[new_id] = nil
+            context.sessions[new_id] = nil
             session.term_channel_id = nil
 
             if session.running_job_id ~= nil then
@@ -101,16 +99,17 @@ local function new_session(new_id)
     return session
 end
 
+--- @param context ceramicist.Context
 --- @param session_id integer|nil
 --- @return ceramicist.Session
-function M.get_session(session_id)
+function M.get_session(context, session_id)
     local session = nil
 
     if session_id then
-        session = SESSIONS[session_id]
+        session = context.sessions[session_id]
     else
         -- By default use the session with the lowest-id.
-        for sid, s in pairs(SESSIONS) do
+        for sid, s in pairs(context.sessions) do
             if session == nil or sid < session.id then
                 session = s
             end
@@ -118,7 +117,7 @@ function M.get_session(session_id)
     end
 
     if not session then
-        session = new_session(session_id or 1)
+        session = new_session(context, session_id or 1)
     end
 
     return session
