@@ -80,6 +80,11 @@ function M.run(context, cwd, session, cmdline, replace, win_opts)
             on_input = function (_, _, _, data)
                 if session.running_job_id then
                     vim.api.nvim_chan_send(session.running_job_id, data)
+                else
+                    -- <C-c> or <Esc> exit TERMINAL mode.
+                    if data == "\3" or data == "\x1b" then
+                        vim.cmd.stopinsert()
+                    end
                 end
             end
         })
