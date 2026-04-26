@@ -37,7 +37,8 @@ function M.run(session, cmdline, replace, win_opts)
 
     -- Reuse a window if the buffer is already visible.
     local window = vim.fn.bufwinid(session.buffer)
-    if window ~= -1 then
+    local has_window = window ~= -1
+    if has_window then
         vim.fn.win_gotoid(window)
     elseif win_opts == "tab" then
         local tab = vim.api.nvim_open_tabpage(session.buffer, true, {})
@@ -47,6 +48,12 @@ function M.run(session, cmdline, replace, win_opts)
     else
         assert(false, "Unreachable")
         return
+    end
+
+    if not has_window then
+        local winhl = vim.wo[window].winhighlight
+        if winhl ~= "" then winhl = winhl .. "," end
+        vim.wo[window].winhighlight = winhl .. "Normal:CeramicistNormal"
     end
 
     -- The band modifier clears the content of the terminal before

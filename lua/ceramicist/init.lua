@@ -13,6 +13,7 @@ function M.setup(opts)
 
     -- Default highlights
     local hl = vim.api.nvim_set_hl
+    hl(0, "CeramicistNormal", { default = true  })
     hl(0, "CeramicistHeader", { link = "DiagnosticVirtualLinesInfo", default = true  })
 
     hl(0, "CeramicistFooterFail", { link = "DiagnosticVirtualLinesError", default = true  })
