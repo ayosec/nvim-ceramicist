@@ -20,7 +20,7 @@ vim.api.nvim_create_autocmd("User", {
     pattern = "Ceramicist/JobStarted",
     callback = function(args)
         fifo_is_open = true
-        buffer = args.data.session.buffer
+        buffer = args.data.session().buffer
     end
 })
 

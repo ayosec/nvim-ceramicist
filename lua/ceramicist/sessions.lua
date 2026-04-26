@@ -2,6 +2,10 @@ local extmarks = require("ceramicist.extmarks")
 
 local M = {}
 
+--- @class ceramicist.LastJob
+--- @field cmdline string
+--- @field cwd string
+
 --- @param context ceramicist.Context
 --- @param new_id integer
 --- @return ceramicist.Session
@@ -13,8 +17,8 @@ local function new_session(context, new_id)
         id = new_id,
         buffer = buffer,
 
-        --- @type string|nil
-        last_command = nil,
+        --- @type ceramicist.LastJob|nil
+        last_job = nil,
 
         --- Channel to send data to the terminal instance.
         --- @type integer|nil
@@ -31,7 +35,32 @@ local function new_session(context, new_id)
     --- @param replace? boolean
     --- @param win_opts "tab"|vim.api.keyset.win_config
     session.run = function(cmdline, replace, win_opts)
-        require("ceramicist.runner").run(context, session, cmdline, replace, win_opts)
+        local run = require("ceramicist.runner").run
+
+        local cwd = nil
+        if string.find(cmdline, "%S") == nil then
+            if session.last_job == nil then
+                vim.notify(
+                    "No command to rerun. Type a new command as the arguments for :"
+                        .. context.config.user_command,
+                    vim.log.levels.ERROR
+                )
+                return
+            end
+
+            cwd = session.last_job.cwd
+            cmdline = session.last_job.cmdline
+        end
+
+        run(context, cwd, session, cmdline, replace, win_opts)
+    end
+
+    session.rerun = function()
+        local lj = session.last_job
+        if lj == nil then return end
+
+        local run = require("ceramicist.runner").run
+        run(context, lj.cwd, session, lj.cmdline, false, {})
     end
 
     session.clear = function()

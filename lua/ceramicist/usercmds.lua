@@ -9,7 +9,19 @@ function M.create_user_command(context, name)
     --- @param args vim.api.keyset.create_user_command.command_args
     local function cmd_impl(args)
         local session_id = nil
-        if args.range == 1 then
+        if args.range == 0 then
+            -- If the current buffer is a terminal, check if it is
+            -- associated with a valid session.
+            local current_buffer = vim.api.nvim_win_get_buf(0)
+            if vim.bo[current_buffer].buftype == "terminal" then
+                for sid, s in pairs(context.sessions) do
+                    if s.buffer == current_buffer then
+                        session_id = sid
+                        break
+                    end
+                end
+            end
+        elseif args.range == 1 then
             session_id = args.line1
         elseif args.range > 1 then
             vim.notify("Cannot use a range to run commands", vim.log.levels.ERROR)
@@ -28,7 +40,7 @@ function M.create_user_command(context, name)
         count = true,
         addr = "other",
         bang = true,
-        nargs = "+",
+        nargs = "*",
         complete = "shellcmdline"
     })
 end

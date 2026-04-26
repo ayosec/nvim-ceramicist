@@ -21,7 +21,7 @@ function M.output(session)
     asserts.eq(
         true,
         vim.wait(1000, function()
-            return session.last_command ~= nil and session.running_job_id == nil
+            return session.last_job ~= nil and session.running_job_id == nil
         end)
     )
 

@@ -32,7 +32,7 @@ vim.api.nvim_create_autocmd("User", {
     callback = function(args)
         jobs_completed = jobs_completed + 1
         asserts.eq(last_cmdline, args.data.cmdline)
-        last_session = args.data.session
+        last_session = args.data.session()
     end
 })
 
@@ -43,18 +43,31 @@ vim.wait(1000, function() return jobs_completed == 1 end)
 asserts.eq(last_cmdline, "echo ABC")
 asserts.eq(last_session, sessions.current())
 
-vim.cmd "C seq 3"
+-- Repeat, twice
+vim.cmd "C"
 vim.wait(1000, function() return jobs_completed == 2 end)
+asserts.eq(last_cmdline, "echo ABC")
+asserts.eq(last_session, sessions.current())
+
+if last_session then last_session.rerun() end
+vim.wait(1000, function() return jobs_completed == 3 end)
+asserts.eq(last_cmdline, "echo ABC")
+asserts.eq(last_session, sessions.current())
+
+-- Another job
+vim.cmd "C seq 3"
+vim.wait(1000, function() return jobs_completed == 4 end)
 asserts.eq(last_cmdline, "seq 3")
 asserts.eq(last_session, sessions.current())
 
+--- Failed jobs
 vim.cmd "C false"
-vim.wait(1000, function() return jobs_completed == 3 end)
+vim.wait(1000, function() return jobs_completed == 5 end)
 asserts.eq(last_cmdline, "false")
 asserts.eq(last_session, sessions.current())
 
 vim.cmd "C kill -9 $$"
-vim.wait(1000, function() return jobs_completed == 4 end)
+vim.wait(1000, function() return jobs_completed == 6 end)
 asserts.eq(last_cmdline, "kill -9 $$")
 asserts.eq(last_session, sessions.current())
 
@@ -64,12 +77,12 @@ asserts.eq(jobs_started, jobs_completed)
 local output = sessions.output(sessions.current())
 
 asserts.eq(
-    { "ABC", "1", "2", "3" },
+    { "ABC", "ABC", "ABC", "1", "2", "3" },
     vim.iter(output.lines):filter(function(l) return l ~= "" end):totable()
 )
 
 asserts.eq(
-    { "echo ABC", "seq 3", "false", "kill -9 $$" },
+    { "echo ABC", "echo ABC", "echo ABC", "seq 3", "false", "kill -9 $$" },
     vim.iter(output.extmarks)
         :filter(function(e) return e[4].line_hl_group == "CeramicistHeader" end)
         :map(function(e) return e[4].virt_text[1][1] end)
@@ -77,7 +90,7 @@ asserts.eq(
 )
 
 asserts.eq(
-    { "0", "0" },
+    { "0", "0", "0", "0" },
     vim.iter(output.extmarks)
         :filter(function(e) return e[4].line_hl_group == "CeramicistFooterSuccess" end)
         :map(function(e) return e[4].virt_text[1][1] end)

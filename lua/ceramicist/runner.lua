@@ -7,7 +7,7 @@ local M = {}
 local function emit_header(config, session, cmdline)
     if session.term_channel_id == nil then return end
 
-    if session.last_command ~= nil then
+    if session.last_job ~= nil then
         session.add_empty_lines(config.output.gap)
     end
 
@@ -25,12 +25,17 @@ local function emit_header(config, session, cmdline)
 end
 
 --- @param context ceramicist.Context
+--- @param cwd string|nil
 --- @param session ceramicist.Session
 --- @param cmdline string
 --- @param replace? boolean
 --- @param win_opts "tab"|vim.api.keyset.win_config
-function M.run(context, session, cmdline, replace, win_opts)
+function M.run(context, cwd, session, cmdline, replace, win_opts)
     local config = context.config
+
+    if cwd == nil then
+        cwd = vim.uv.cwd() or "."
+    end
 
     -- Interrupt the previous job if it is still running.
     if session.running_job_id then
@@ -83,21 +88,28 @@ function M.run(context, session, cmdline, replace, win_opts)
     vim.cmd.startinsert()
 
     vim.api.nvim_buf_set_name(session.buffer, string.format(
-        "[ceramicist#%s] %s",
+        "[#%s] %s",
         session.id,
-        #cmdline > 16 and string.sub(cmdline, 0, 16) .. "..." or cmdline
+        #cmdline > 16 and string.sub(cmdline, 0, 16) .. "…" or cmdline
     ))
 
     local job_id = -1
     local start_time = vim.uv.hrtime()
 
-    session.last_command = cmdline
+    vim.bo[session.buffer].busy = 1
+
+    session.last_job = {
+        cmdline = cmdline,
+        cwd = cwd,
+    }
+
     job_id = vim.fn.jobstart(
         config.job_command(cmdline),
         {
             pty = true,
             width = vim.fn.winwidth(window),
             height = vim.fn.winheight(window),
+            cwd = cwd,
 
             on_exit = function(_, exit_code)
                 local duration = vim.uv.hrtime() - start_time
@@ -144,6 +156,8 @@ function M.run(context, session, cmdline, replace, win_opts)
                 -- is full, extmarks on the first line are removed.
                 local buffer = session.buffer
                 if vim.api.nvim_buf_is_valid(buffer) then
+                    vim.bo[session.buffer].busy = 0
+
                     local max_lines = vim.fn.winheight(window) + vim.bo[buffer].scrollback
 
                     if max_lines <= vim.api.nvim_buf_line_count(buffer) then
@@ -157,7 +171,7 @@ function M.run(context, session, cmdline, replace, win_opts)
                 vim.api.nvim_exec_autocmds("User", {
                     pattern = "Ceramicist/JobFinished",
                     data = {
-                        session = session,
+                        session = function() return session end,
                         cmdline = cmdline
                     }
                 })
@@ -184,7 +198,7 @@ function M.run(context, session, cmdline, replace, win_opts)
     vim.api.nvim_exec_autocmds("User", {
         pattern = "Ceramicist/JobStarted",
         data = {
-            session = session,
+            session = function() return session end,
             cmdline = cmdline
         }
     })
