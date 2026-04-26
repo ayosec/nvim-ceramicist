@@ -60,7 +60,12 @@ function M.run(context, cwd, session, cmdline, replace, win_opts)
     if not has_window then
         local winhl = vim.wo[window].winhighlight
         if winhl ~= "" then winhl = winhl .. "," end
-        vim.wo[window][0].winhighlight = winhl .. "Normal:" .. config.highlight_name_prefix .. "Normal"
+        vim.wo[window][0].winhighlight = winhl .. "Normal:" .. context.hl("Normal")
+
+        local stl = context.config.statusline
+        if stl then
+            vim.wo[window][0].statusline = stl
+        end
     end
 
     -- The band modifier clears the content of the terminal before
@@ -126,12 +131,11 @@ function M.run(context, cwd, session, cmdline, replace, win_opts)
                 if chan_id ~= nil then
                     session.add_empty_lines(config.output.padding)
 
-                    local np = config.highlight_name_prefix
                     session.add_extmark {
                         hl_mode = "combine",
                         line_hl_group = exit_code == 0
-                            and (np .. "FooterSuccess")
-                            or (np .. "FooterFail"),
+                            and context.hl("FooterSuccess")
+                            or context.hl("FooterFail"),
                         virt_text_pos = "overlay",
                         virt_text = config.output.footer(exit_code, duration),
                     }
@@ -166,11 +170,14 @@ function M.run(context, cwd, session, cmdline, replace, win_opts)
                             50
                         )
                     end
+
+                    vim.api.nvim__redraw { buf = session.buffer, statusline = true }
                 end
 
                 vim.api.nvim_exec_autocmds("User", {
                     pattern = "Ceramicist/JobFinished",
                     data = {
+                        context = function() return context end,
                         session = function() return session end,
                         cmdline = cmdline
                     }
@@ -198,10 +205,13 @@ function M.run(context, cwd, session, cmdline, replace, win_opts)
     vim.api.nvim_exec_autocmds("User", {
         pattern = "Ceramicist/JobStarted",
         data = {
+            context = function() return context end,
             session = function() return session end,
             cmdline = cmdline
         }
     })
+
+    vim.api.nvim__redraw { buf = session.buffer, statusline = true }
 end
 
 return M

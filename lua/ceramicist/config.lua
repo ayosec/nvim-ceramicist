@@ -10,6 +10,16 @@ function M.defaults()
         --- @type string|nil
         user_command = "Ceramicist",
 
+        --- Status line for Ceramicist windows.
+        ---
+        --- Set to `false` to keep the global status line.
+        ---
+        --- @type string|false
+        statusline = table.concat {
+            [[%{%exists('b:ceramicist_statusline') ? b:ceramicist_statusline() : '%t'%}]],
+            [[%=%-15(%l,%c%V%) %P]]
+        },
+
         --- Command to spawn a job from a `cmdline`.
         ---
         --- @param cmdline string

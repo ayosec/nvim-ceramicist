@@ -1,5 +1,13 @@
 local M = {}
 
+--- @alias ceramicist.HighlightGroup
+--- | '"FooterFail"'
+--- | '"FooterSuccess"'
+--- | '"Header"'
+--- | '"Normal"'
+--- | '"StatusLineJobStatus"'
+
+
 --- @param config ceramicist.Config
 --- @return ceramicist.Context
 function M.setup(config)
@@ -16,18 +24,25 @@ function M.setup(config)
         sessions = {},
     }
 
+    --- @param group ceramicist.HighlightGroup
+    --- @return string
+    context.hl = function(group)
+        return config.highlight_name_prefix .. group
+    end
+
     if config.user_command and config.user_command ~= "" then
         require("ceramicist.usercmds").create_user_command(context, config.user_command)
     end
 
     -- Default highlights
     local hl = vim.api.nvim_set_hl
-    local np = config.highlight_name_prefix
-    hl(0, np .. "Normal", { default = true  })
-    hl(0, np .. "Header", { link = "DiagnosticVirtualLinesInfo", default = true  })
+    hl(0, context.hl("Normal"), { default = true  })
+    hl(0, context.hl("Header"), { link = "DiagnosticVirtualLinesInfo", default = true })
 
-    hl(0, np .. "FooterFail", { link = "DiagnosticVirtualLinesError", default = true  })
-    hl(0, np .. "FooterSuccess", { link = "DiagnosticVirtualLinesOk", default = true  })
+    hl(0, context.hl("FooterSuccess"), { link = "DiagnosticVirtualLinesOk", default = true })
+    hl(0, context.hl("FooterFail"), { link = "DiagnosticVirtualLinesError", default = true })
+
+    hl(0, context.hl("StatusLineJobStatus"), { dim = true, default = true })
 
     return context
 end

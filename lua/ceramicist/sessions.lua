@@ -31,6 +31,21 @@ local function new_session(context, new_id)
 
     vim.b[buffer].ceramicist_session = function() return session end
 
+    vim.b[buffer].ceramicist_statusline = function()
+        local job_status = ""
+        local cmdline = ""
+
+        if session.running_job_id ~= nil then
+            job_status = "%#" .. context.hl("StatusLineJobStatus") .. "#RUNNING%##   "
+        end
+
+        if session.last_job ~= nil then
+            cmdline = string.gsub(session.last_job.cmdline, "%%", "%%%%")
+        end
+
+        return string.format("[#%s]   %s%s", new_id, job_status, cmdline)
+    end
+
     --- @param cmdline string
     --- @param replace? boolean
     --- @param win_opts "tab"|vim.api.keyset.win_config
