@@ -95,6 +95,15 @@ function M.run(context, cwd, session, cmdline, replace, grab_window_focus, win_o
                 end
             end
         })
+
+        vim.api.nvim_exec_autocmds("User", {
+            pattern = "Ceramicist/SessionCreated",
+            data = {
+                buffer = session.buffer,
+                context = function() return context end,
+                session = function() return session end,
+            }
+        })
     end
 
     assert(session.term_channel_id ~= 0, "Missing terminal channel")

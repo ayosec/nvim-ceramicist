@@ -12,11 +12,20 @@ local context = ceramicist.setup {
     }
 }
 
+local sessions_count = 0
 local jobs_started = 0
 local jobs_completed = 0
 
 local last_cmdline = ""
 local last_session = nil
+
+vim.api.nvim_create_autocmd("User", {
+    pattern = "Ceramicist/SessionCreated",
+    callback = function(args)
+        assert(vim.api.nvim_buf_is_valid(args.data.buffer))
+        sessions_count = sessions_count + 1
+    end
+})
 
 vim.api.nvim_create_autocmd("User", {
     pattern = "Ceramicist/JobStarted",
@@ -107,3 +116,5 @@ asserts.eq(
 
 -- Verify that `vim.b` returns the same reference.
 assert(vim.b.ceramicist_session() == context.sessions[1])
+
+asserts.eq(sessions_count, 1)
