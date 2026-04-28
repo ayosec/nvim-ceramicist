@@ -5,8 +5,8 @@ local M = {}
 --- | '"FooterSuccess"'
 --- | '"Header"'
 --- | '"Normal"'
---- | '"StatusLineJobStatus"'
---- | '"WatchMode"'
+--- | '"StatusLineRunning"'
+--- | '"StatusLineWatch"'
 
 
 --- @param config ceramicist.Config
@@ -45,8 +45,8 @@ function M.setup(config)
     hl(0, context.hl("FooterSuccess"), { link = "DiagnosticVirtualLinesOk", default = true })
     hl(0, context.hl("FooterFail"), { link = "DiagnosticVirtualLinesError", default = true })
 
-    hl(0, context.hl("StatusLineJobStatus"), { italic = true, default = true })
-    hl(0, context.hl("WatchMode"), { italic = true, default = true })
+    hl(0, context.hl("StatusLineRunning"), { italic = true, default = true })
+    hl(0, context.hl("StatusLineWatch"), { italic = true, default = true })
 
     return context
 end

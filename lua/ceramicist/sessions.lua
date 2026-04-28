@@ -34,21 +34,26 @@ local function new_session(context, new_id)
 
     vim.b[buffer].ceramicist_session = function() return session end
 
-    vim.b[buffer].ceramicist_statusline = function()
-        local action = ""
-        local cmdline = ""
+    do
+        local action_running = "%#" .. context.hl("StatusLineRunning") .. "# RUNNING %##   "
+        local action_watch = "%#" .. context.hl("StatusLineWatch") .. "# WATCH %##   "
 
-        if session.is_running() then
-            action = "%#" .. context.hl("StatusLineJobStatus") .. "#RUNNING%##   "
-        elseif session.is_watching() then
-            action = "%#" .. context.hl("WatchMode") .. "#WATCH%##   "
+        vim.b[buffer].ceramicist_statusline = function()
+            local action = " "
+            local cmdline = ""
+
+            if session.is_running() then
+                action = action_running
+            elseif session.is_watching() then
+                action = action_watch
+            end
+
+            if session.last_job ~= nil then
+                cmdline = string.gsub(session.last_job.cmdline, "%%", "%%%%")
+            end
+
+            return string.format("[#%s]   %s%s", new_id, action, cmdline)
         end
-
-        if session.last_job ~= nil then
-            cmdline = string.gsub(session.last_job.cmdline, "%%", "%%%%")
-        end
-
-        return string.format("[#%s]   %s%s", new_id, action, cmdline)
     end
 
     --- @param cmdline string
