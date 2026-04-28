@@ -41,6 +41,12 @@ function M.run(context, cwd, session, cmdline, replace, grab_window_focus, win_o
     -- Interrupt the previous job if it is still running.
     if session.running_job_id then
         vim.fn.jobstop(session.running_job_id)
+
+        -- Wait up to 500ms to stop the job. This is just to
+        -- avoid mixing the stop/start messages in the output,
+        -- so the footer of the stopped job appears before
+        -- the header of the new one.
+        vim.wait(500, function() return session.running_job_id == nil end, 25)
     end
 
     -- Reuse a window if the buffer is already visible.
