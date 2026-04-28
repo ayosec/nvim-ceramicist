@@ -139,6 +139,12 @@ function M.run(context, cwd, session, cmdline, replace, grab_window_focus, win_o
         cwd = cwd,
     }
 
+    -- If the program running in the job tries to change the cursor
+    -- position (CUP), or to erase the display (DECSED), the window
+    -- adds empty lines to push the current output to the scrollback,
+    -- only once per job.
+    local win_cleared = false
+
     job_id = vim.fn.jobstart(
         config.job_command(cmdline),
         {
@@ -178,9 +184,16 @@ function M.run(context, cwd, session, cmdline, replace, grab_window_focus, win_o
                 if job_id == session.running_job_id then
                     session.running_job_id = nil
 
-                    if vim.api.nvim_get_current_buf() == session.buffer then
-                        vim.cmd.stopinsert()
-                    end
+                    -- Wait before stopinsert, so the updates on the terminal
+                    -- can keep updating the cursor position.
+                    vim.defer_fn(
+                        function()
+                            if vim.api.nvim_get_current_buf() == session.buffer then
+                                vim.cmd.stopinsert()
+                            end
+                        end,
+                        20
+                    )
                 end
 
                 -- Nvim 0.12 does not remove extmarks when lines are discarded
@@ -221,6 +234,28 @@ function M.run(context, cwd, session, cmdline, replace, grab_window_focus, win_o
                 if chan_id == nil then return end
 
                 for i, line in ipairs(data) do
+                    if not win_cleared then
+                        -- Check if the line contains a CUP or DECSED sequence,
+                        -- and add empty lines before it.
+                        --
+                        -- This solution is very naïve, and does not cover every
+                        -- case, but it works well enough.
+                        --
+                        -- Limit to chunks of 256 bytes to reduce the performance
+                        -- impact when the process is writing a lot of data.
+                        if #data <= 256 then
+                            local idx = string.find(line, "\x1B%[[0-9;]*[HJ]")
+                            if idx ~= nil then
+                                win_cleared = true
+
+                                local winh = vim.fn.winheight(window)
+                                line = string.sub(line, 1, idx - 1)
+                                        .. string.rep("\r\n", winh)
+                                        .. string.sub(line, idx)
+                            end
+                        end
+                    end
+
                     if i > 1 then
                         line = "\n" .. line
                     end
