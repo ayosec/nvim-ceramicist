@@ -35,7 +35,7 @@ local function new_session(context, new_id)
     vim.b[buffer].ceramicist_session = function() return session end
 
     do
-        local action_running = "%#" .. context.hl("StatusLineRunning") .. "# RUNNING %##   "
+        local action_running = { "%#" .. context.hl("StatusLineRunning") .. "# RUNNING [", "] %##   " }
         local action_watch = "%#" .. context.hl("StatusLineWatch") .. "# WATCH %##   "
 
         vim.b[buffer].ceramicist_statusline = function()
@@ -43,7 +43,8 @@ local function new_session(context, new_id)
             local cmdline = ""
 
             if session.is_running() then
-                action = action_running
+                local pid = vim.fn.jobpid(session.running_job_id)
+                action = action_running[1] .. pid .. action_running[2]
             elseif session.is_watching() then
                 action = action_watch
             end
