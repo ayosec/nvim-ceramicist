@@ -37,3 +37,12 @@ run("C :", 2)
 run("3C :", 3)
 vim.cmd.b { range = { context.sessions[2].buffer } }
 run("C :", 2)
+
+
+-- list_sessions() must find all available sessions.
+local sess = vim.iter(ceramicist.list_sessions()):totable()
+table.sort(sess, function(a, b) return a.id < b.id end)
+asserts.eq(
+    { context.sessions[2], context.sessions[3] },
+    sess
+)

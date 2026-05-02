@@ -51,4 +51,24 @@ function M.setup(config)
     return context
 end
 
+--- Return all available sessions.
+---
+--- @return fun(): ceramicist.Session|nil
+function M.list_sessions()
+    local bufs = vim.api.nvim_list_bufs()
+    local iter = nil
+    return function()
+        while true do
+            local ni, buf = next(bufs, iter)
+            if ni == nil or buf == nil then return end
+
+            iter = ni
+            local get_session = vim.b[buf].ceramicist_session
+            if type(get_session) == "function" then
+                return get_session()
+            end
+        end
+    end
+end
+
 return M
