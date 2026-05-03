@@ -22,7 +22,7 @@ function M.create_user_command(context, spec)
                 end
             end
         elseif args.range == 1 then
-            session_id = args.line1
+            session_id = args.line2
         elseif args.range > 1 then
             vim.notify("Cannot use a range to run commands", vim.log.levels.ERROR)
             return
