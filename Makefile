@@ -1,5 +1,11 @@
 .PHONY: all
-all: test lint
+all: doc test lint
+
+.PHONY: doc
+doc: doc/ceramicist.txt
+
+doc/ceramicist.txt: doc/generate.sh README.md lua/ceramicist/config.lua
+	doc/generate.sh README.md lua/ceramicist/config.lua
 
 .PHONY: test
 test:

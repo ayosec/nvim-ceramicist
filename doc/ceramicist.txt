@@ -1,0 +1,498 @@
+*ceramicist.txt*                                                Command Runner
+
+==============================================================================
+Table of Contents                               *ceramicist-table-of-contents*
+
+1. Introduction                                      |ceramicist-introduction|
+2. Usage                                                    |ceramicist-usage|
+  - Repeating Commands                   |ceramicist-usage-repeating-commands|
+  - Watch Mode                                   |ceramicist-usage-watch-mode|
+  - Content Reset                             |ceramicist-usage-content-reset|
+  - Multiple Sessions                     |ceramicist-usage-multiple-sessions|
+  - Multiple Instances                   |ceramicist-usage-multiple-instances|
+  - Window Placement                       |ceramicist-usage-window-placement|
+  - Deleting Sessions                     |ceramicist-usage-deleting-sessions|
+  - Listing Sessions                       |ceramicist-usage-listing-sessions|
+3. Configuration                                    |ceramicist-configuration|
+  - Header and Footer             |ceramicist-configuration-header-and-footer|
+  - Status Line                         |ceramicist-configuration-status-line|
+  - Autocommands                       |ceramicist-configuration-autocommands|
+  - Example                                 |ceramicist-configuration-example|
+
+==============================================================================
+1. Introduction                                      *ceramicist-introduction*
+
+Ceramicist is Neovim plugin to execute shell commands (like |:!|) and display
+their output in a dedicated window. It is similar to the |terminal| available
+in Neovim, but with some features intended to make it more convenient to use
+when you don’t need a full shell.
+
+The main features are:
+
+- The shell command to run is written directly in Neovim’s |command line|.
+- Multiple commands can be appended to a single session.
+- The terminal window automatically starts Terminal mode when a shell command is
+    run, and returns to Normal mode when it finishes.
+- A header is written to show which shell command is executed.
+- A footer is written to show the exit status and the duration of the command.
+- The |status-line| shows information about the session.
+
+
+==============================================================================
+2. Usage                                                    *ceramicist-usage*
+
+The `setup()` function creates an instance of Ceramicist.
+
+>lua
+    require("ceramicist").setup({})
+<
+
+This instance is accessible through the user-command defined in the `setup()`
+options. By default, the user-command is `:Ceramicist`:
+
+>vim
+    :Ceramicist ./scripts/something
+<
+
+The arguments of the user-command specify the shell command to run, like |:!|.
+
+If there is another job running when a new one is executed, the previous job is
+interrupted before starting the new one.
+
+To define a different command name (for example, `:C`):
+
+>lua
+    require("ceramicist").setup {
+        user_command = { name = "C" }
+    }
+<
+
+Then:
+
+>vim
+    :C make test
+<
+
+
+REPEATING COMMANDS                       *ceramicist-usage-repeating-commands*
+
+If the user-command is executed with no arguments it repeats the last shell
+command, like |:!!|.
+
+>vim
+    :Ceramicist make test
+
+    :Ceramicist             " Repeat 'make test'
+<
+
+You can also use the `rerun()` function, available in the buffer variable
+`b:ceramicist_session`, to repeat it.
+
+The next example uses an autocommand to trigger a rerun when <C-R> is pressed
+on a window for a Ceramicist session:
+
+>lua
+    vim.api.nvim_create_autocmd("User", {
+        pattern = "Ceramicist/SessionCreated",
+        callback = function(args)
+            local map_opts = { buf = args.data.buffer }
+
+            vim.keymap.set(
+                "n", "<C-R>",
+                function() vim.b.ceramicist_session().rerun() end,
+                map_opts
+            )
+        end
+    })
+<
+
+
+WATCH MODE                                       *ceramicist-usage-watch-mode*
+
+The `:CeramicistToggleWatch` user-command can enable or disable the Watch mode
+in a session. The user-command changes only the session in the current buffer.
+To enable Watch mode in multiple sessions, execute it in each one.
+
+When Watch mode is enabled, the last shell command in the session is repeated
+after saving changes on any buffer. See |BufWritePost|.
+
+
+CONTENT RESET                                 *ceramicist-usage-content-reset*
+
+If the user-command is executed with the `!` modifier (see |:_!|) the output
+from previous jobs is removed before running a new one:
+
+>vim
+    :Ceramicist scripts/tests       " The output is added to the session.
+
+    :Ceramicist! scripts/tests      " Reset session before running the job.
+<
+
+
+MULTIPLE SESSIONS                         *ceramicist-usage-multiple-sessions*
+
+Multiple sessions of the same instance can be created by adding a number to the
+user-command, either before or after the name:
+
+>vim
+    :Ceramicist scripts/something       " Default session.
+
+    :2Ceramicist scripts/other          " Session 2
+
+    :Ceramicist2 scripts/other          " Session 2
+<
+
+The number is the session id. Its default value depends on the context where
+the user-command is executed:
+
+- If the current buffer is a Ceramicist session, use its id.
+- If there is at least one session, use the smallest id.
+- If there are no sessions, defaults to `1`.
+
+
+MULTIPLE INSTANCES                       *ceramicist-usage-multiple-instances*
+
+Multiple instances of Ceramicist can be created with different calls to
+`setup()`, each one with its own user-command name.
+
+The next example defines an instance on `:C` with the default configuration,
+and another instance on `:M` that executes `make(1)` instead of a shell
+expression. It also provides a custom completion list for `:M`:
+
+>lua
+    require("ceramicist").setup {
+        user_command = { name = "C" }
+    }
+
+    require("ceramicist").setup {
+        user_command = {
+            name = "M",
+            complete = function()
+                return { "all", "fmt", "test" }
+            end,
+        },
+
+        job_command = function(cmdline)
+            return { "make", cmdline }
+        end,
+    }
+<
+
+For more details on the `user_command.complete` field, see |:command-complete|
+and |:command-completion-customlist|.
+
+
+WINDOW PLACEMENT                           *ceramicist-usage-window-placement*
+
+By default, the window for the session is open in a horizontal split at the
+bottom of the current tab. The modifiers |:vertical|, |:tab|, |:topleft|, etc,
+can be used to change the placement of the new window:
+
+- `:topleft Ceramicist ...` open a horizontal split at the top.
+- `:vertical Ceramicist ...` open a vertical split to the right.
+- `:vertical topleft Ceramicist ...` open a vertical split to the left.
+- `:tab Ceramicist ...` open the session in a new tab.
+
+
+DELETING SESSIONS                         *ceramicist-usage-deleting-sessions*
+
+A session can be deleted with |:bdelete!| (or just |:bd!|). When it is deleted,
+its state (the output from previous jobs, the last shell command, etc) is lost.
+
+If there is a running job when the buffer is deleted, the job is interrupted.
+
+The session will be recreated the next time the user-command is executed.
+
+
+LISTING SESSIONS                           *ceramicist-usage-listing-sessions*
+
+The function `list_sessions` returns an iterator to get all active sessions.
+These objects can be used to add extra functionality to manage the sessions.
+
+For example, to add a `:DeleteCeramicistSessions` user-command to delete all
+idle (i.e. without a running job) sessions:
+
+>lua
+    vim.api.nvim_create_user_command(
+        "DeleteCeramicistSessions",
+        function()
+            for session in require("ceramicist").list_sessions() do
+                if not session.is_running() then
+                    vim.cmd.bdelete { session.buffer, bang = true }
+                end
+            end
+        end,
+        { desc = "Delete idle Ceramicist sessions" }
+    )
+<
+
+
+==============================================================================
+3. Configuration                                    *ceramicist-configuration*
+
+The default configuration provided by Ceramicist is very basic, since it is
+expected that users adjust it to their own preferences.
+
+The default configuration can be used as a reference of all available options:
+
+>lua
+    {
+        --- @class ceramicist.UserCommandSpec
+        user_command = {
+            --- Name of the user command to open execute a job.
+            ---
+            --- If `nil`, no command will be created.
+            ---
+            --- @type string|nil
+            name = "Ceramicist",
+
+            --- Completion scheme for the user command.
+            ---
+            --- This value is set as the `complete` option for |nvim_create_user_command()|
+            --- See |lua-guide-commands-create| and |:command-complete|
+            --- for details.
+            ---
+            --- @type any
+            complete = "shellcmdline",
+        },
+
+        --- Status line for Ceramicist windows.
+        ---
+        --- Set to `false` to keep the global status line.
+        ---
+        --- @type string|false
+        statusline = table.concat {
+            [[%{%exists('b:ceramicist_statusline') ? b:ceramicist_statusline() : '%t'%}]],
+            [[   %=%-15(%l,%c%V%) %P]]
+        },
+
+        --- Command to spawn a job from a `cmdline`.
+        ---
+        --- @param cmdline string
+        --- @return string[]
+        job_command = function(cmdline)
+            return { vim.o.shell, vim.o.shellcmdflag, cmdline }
+        end,
+
+        --- Prefix for highlight groups.
+        highlight_name_prefix = "Ceramicist",
+
+        output = {
+            --- Number of empty lines to add before adding new jobs
+            --- to an existing session.
+            ---
+            --- @type integer
+            gap = 2,
+
+            --- Number of empty lines to add after the header and
+            --- before the footer.
+            ---
+            --- @type integer
+            padding = 1,
+
+            --- Contents of the line written when a job is started.
+            ---
+            --- It receives the command line to be executed, and
+            --- returns a list to be used as the `virt_text` field
+            --- for `nvim_buf_set_extmark`.
+            ---
+            --- @param cmdline string
+            header = function(cmdline)
+                return {
+                    { require("ceramicist.utils").escape_control_chars(cmdline), "" }
+                }
+            end,
+
+            --- Contents of the line written when a job is finished.
+            ---
+            --- Like `header`, it returns the value for `virt_text`.
+            ---
+            --- @param exit integer|string Exit code or signal name.
+            --- @param duration integer Duration in nanoseconds.
+            footer = function(exit, duration)
+                local fd = require("ceramicist.utils").format_duration(duration)
+                return {
+                    { "Exit code " .. exit .. " after " .. fd, "" }
+                }
+            end,
+        }
+    }
+<
+
+
+HEADER AND FOOTER                 *ceramicist-configuration-header-and-footer*
+
+The fields `output.header` and `output.footer` can define functions that are
+used to render the header before running a job, and the footer after it is
+finished.
+
+Both functions must return a list of `{ text, highlight }` pairs, like the
+`virt_text` field of |nvim_buf_set_extmark|.
+
+`header()` receives a single argument, a string with the command line used to
+run the job.
+
+`footer()` receives the exit code and the duration in nanoseconds. The exit
+code can be either an integer, or a string with the name of the signal that
+stopped the process.
+
+
+STATUS LINE                             *ceramicist-configuration-status-line*
+
+The field `statusline` defines a string to be used as the statusline of the
+sessions of the instance.
+
+The buffer variable `b:ceramicist_statusline` is a function to provide a short
+summary of the status of the session (the PID of the running job, if Watch mode
+is enabled, the full command line, etc).
+
+If `statusline` is `false`, the statusline is not modified.
+
+
+AUTOCOMMANDS                           *ceramicist-configuration-autocommands*
+
+Extra configuration options can be set by using autocommands:
+
+- `Ceramicist/SessionCreated`
+- `Ceramicist/JobFinished`
+- `Ceramicist/JobStarted`
+
+In the `data` field, `SessionCreated` receives the buffer number, the window
+id, and the instance of the session.
+
+For `JobStarted` and `JobFinished`, they also receive the command line to run
+the job.
+
+The next example uses `SessionCreated` to add 2 key mappings (<C-R> to repeat
+the last command, and <C-A> to toggle Watch mode).
+
+>lua
+    vim.api.nvim_create_autocmd("User", {
+        pattern = "Ceramicist/SessionCreated",
+        callback = function(args)
+            local map_opts = { buf = args.data.buffer }
+
+            -- <C-A> toggle watch
+            vim.keymap.set("n", "<C-A>", "<Cmd>CeramicistToggleWatch<CR>", map_opts)
+
+            -- <C-R> rerun
+            vim.keymap.set(
+                "n", "<C-R>",
+                function() vim.b.ceramicist_session().rerun() end,
+                map_opts
+            )
+        end
+    })
+<
+
+The next example uses |matchadd()| to highlight some patterns when the shell
+command starts with `scripts/`.
+
+>lua
+    vim.api.nvim_create_autocmd("User", {
+        pattern = "Ceramicist/JobStarted",
+        callback = function(args)
+            local buffer = args.data.buffer
+            local window = args.data.window
+            local cmdline = args.data.cmdline
+
+            -- Use a buffer variable to track if the matchadd() is done.
+            if vim.b[buffer].has_matchadd then return end
+
+            if vim.startswith(cmdline, "scripts/") then
+                vim.b[buffer].has_matchadd = true
+                vim.fn.matchadd("DiagnosticInfo", "^INFO", 0, -1, { window = window })
+                vim.fn.matchadd("DiagnosticError", "^ERROR", 0, -1, { window = window })
+            end
+        end
+    })
+<
+
+
+EXAMPLE                                     *ceramicist-configuration-example*
+
+The configuration example below:
+
+- Creates highlight groups to replace the default colors, and add new ones for
+    the added components in the header and the footer.
+- Includes a timestamp in the header.
+- Uses custom highlights for the different components of the footer.
+- Add some key mappings to the session’s buffer.
+
+>lua
+    vim.api.nvim_set_hl(0, "CeramicistNormal", { bg = "#001429" })
+
+    vim.api.nvim_set_hl(0, "CeramicistHeader", { bg = "#002E5C" })
+    vim.api.nvim_set_hl(0, "Ceramicist.Time", { fg = "#7777FF" })
+
+    vim.api.nvim_set_hl(0, "CeramicistFooterFail", { bg = "#652131" })
+    vim.api.nvim_set_hl(0, "CeramicistFooterSuccess", { bg = "#21653F" })
+
+    vim.api.nvim_set_hl(0, "Ceramicist.Success.Duration", { bg = "#329A5F"  })
+    vim.api.nvim_set_hl(0, "Ceramicist.Fail.Duration", { bg = "#9A324A"  })
+    vim.api.nvim_set_hl(0, "Ceramicist.Fail.Code", { bg = "#732638"  })
+    vim.api.nvim_set_hl(0, "Ceramicist.Fail.Signal", { bg = "#73264D"  })
+
+    vim.api.nvim_set_hl(0, "CeramicistStatusLineWatch", { bg = "#004D4D" })
+    vim.api.nvim_set_hl(0, "CeramicistStatusLineRunning", { bg = "#702000" })
+
+
+    local utils = require("ceramicist.utils")
+
+    local context = require("ceramicist").setup({
+        user_command = { name = "C" },
+
+        output = {
+            gap = 3,
+
+            header = function(cmdline)
+                return {
+                    { vim.fn.strftime(" %H:%M:%S  "), "Ceramicist.Time" },
+                    { utils.escape_control_chars(cmdline), "" },
+                }
+            end,
+
+            footer = function(exit, duration)
+                local fd = " " .. utils.format_duration(duration) .. " "
+                if exit == 0 then
+                    return { { "   ", "" }, { fd, "Ceramicist.Success.Duration" } }
+                end
+
+                -- Failed
+                local status
+                if type(exit) == "number" then
+                    status = { " $! = " .. exit .. " ", "Ceramicist.Fail.Code" }
+                else
+                    status = { " " .. exit .. " ", "Ceramicist.Fail.Signal" }
+                end
+
+                local sep = { "   ", "" }
+                return {  sep, status, sep, { fd, "Ceramicist.Fail.Duration" } }
+            end,
+        },
+    })
+
+
+    vim.api.nvim_create_autocmd("User", {
+        pattern = "Ceramicist/SessionCreated",
+        callback = function(args)
+            local map_opts = { buf = args.data.buffer }
+
+            -- <C-A> toggle watch
+            vim.keymap.set(
+                "n", "<C-A>",
+                "<Cmd>CeramicistToggleWatch<CR>",
+                map_opts
+            )
+
+            -- <C-R> rerun
+            vim.keymap.set(
+                "n", "<C-R>",
+                function() vim.b.ceramicist_session().rerun() end,
+                map_opts
+            )
+        end
+    })
+<
+
+vim:tw=78:ts=8:noet:ft=help:norl:

@@ -17,7 +17,7 @@
         pkgs = nixpkgs.legacyPackages.${system};
 
         watch = pkgs.writeShellScriptBin "watch" ''
-          exec ${pkgs.watchexec}/bin/watchexec --restart -n \
+          exec ${pkgs.watchexec}/bin/watchexec -n \
             -- make "$@"
         '';
       in {
@@ -26,6 +26,7 @@
             gnumake
             lua-language-server
             luajitPackages.luacheck
+            panvimdoc
             watch
             watchexec
           ];
