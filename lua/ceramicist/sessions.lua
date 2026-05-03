@@ -53,7 +53,7 @@ local function new_session(context, new_id)
                 cmdline = string.gsub(session.last_job.cmdline, "%%", "%%%%")
             end
 
-            return string.format("[#%s]   %s%s", new_id, action, cmdline)
+            return string.format("[#%s]   %s%%<%s", new_id, action, cmdline)
         end
     end
 

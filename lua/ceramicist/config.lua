@@ -29,7 +29,7 @@ function M.defaults()
         --- @type string|false
         statusline = table.concat {
             [[%{%exists('b:ceramicist_statusline') ? b:ceramicist_statusline() : '%t'%}]],
-            [[%=%-15(%l,%c%V%) %P]]
+            [[   %=%-15(%l,%c%V%) %P]]
         },
 
         --- Command to spawn a job from a `cmdline`.
