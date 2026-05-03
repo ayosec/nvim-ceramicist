@@ -43,8 +43,8 @@ local function new_session(context, new_id)
             local cmdline = ""
 
             if session.is_running() then
-                local pid = vim.fn.jobpid(session.running_job_id)
-                action = action_running[1] .. pid .. action_running[2]
+                local ok, pid = pcall(vim.fn.jobpid, session.running_job_id)
+                action = action_running[1] .. (ok and pid or "N/A") .. action_running[2]
             elseif session.is_watching() then
                 action = action_watch
             end
@@ -137,7 +137,10 @@ local function new_session(context, new_id)
 
             for _, winid in pairs(windows) do
                 if vim.api.nvim_win_get_buf(winid) == buffer then
-                    vim.fn.jobresize(
+                    -- Use pcall because the job may have finished by the
+                    -- time this event is triggered.
+                    pcall(
+                        vim.fn.jobresize,
                         job_id,
                         vim.fn.winwidth(winid),
                         vim.fn.winheight(winid)
