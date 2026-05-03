@@ -30,6 +30,8 @@ vim.api.nvim_create_autocmd("User", {
 vim.api.nvim_create_autocmd("User", {
     pattern = "Ceramicist/JobStarted",
     callback = function(args)
+        assert(vim.api.nvim_buf_is_valid(args.data.buffer))
+        assert(vim.api.nvim_win_is_valid(args.data.window))
         jobs_started = jobs_started + 1
         last_cmdline = args.data.cmdline
     end
@@ -39,6 +41,8 @@ vim.api.nvim_create_autocmd("User", {
 vim.api.nvim_create_autocmd("User", {
     pattern = "Ceramicist/JobFinished",
     callback = function(args)
+        assert(vim.api.nvim_buf_is_valid(args.data.buffer))
+        assert(vim.api.nvim_win_is_valid(args.data.window))
         jobs_completed = jobs_completed + 1
         asserts.eq(last_cmdline, args.data.cmdline)
         last_session = args.data.session()

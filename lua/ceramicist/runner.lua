@@ -221,9 +221,11 @@ function M.run(context, cwd, session, cmdline, replace, grab_window_focus, win_o
                 vim.api.nvim_exec_autocmds("User", {
                     pattern = "Ceramicist/JobFinished",
                     data = {
+                        cmdline = cmdline,
+                        buffer = session.buffer,
+                        window = window,
                         context = function() return context end,
                         session = function() return session end,
-                        cmdline = cmdline
                     }
                 })
             end,
@@ -271,9 +273,11 @@ function M.run(context, cwd, session, cmdline, replace, grab_window_focus, win_o
     vim.api.nvim_exec_autocmds("User", {
         pattern = "Ceramicist/JobStarted",
         data = {
+            cmdline = cmdline,
+            buffer = session.buffer,
+            window = window,
             context = function() return context end,
             session = function() return session end,
-            cmdline = cmdline
         }
     })
 
