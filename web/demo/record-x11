@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+X11_DISPLAY=$1
+VIDEO_OUTPUT=$2
+DURATION=$3
+
+export DISPLAY=":$X11_DISPLAY"
+
+# shellcheck disable=SC2046
+window=$(xdotool search --class xterm)
+
+args=(
+    -y
+    -nostdin
+    -loglevel warning
+    -framerate 60
+    -probesize $((32 << 20))
+    -draw_mouse 0
+    -f x11grab
+    -window_id "$window"
+    -i ":$X11_DISPLAY"
+    -vf 'crop= iw - 4 : ih - 4'
+    -t "$DURATION"
+    -c:v ffv1
+    -level 3
+    "$VIDEO_OUTPUT"
+)
+
+set -x
+exec ffmpeg "${args[@]}"

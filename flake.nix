@@ -16,25 +16,47 @@
       system: let
         pkgs = nixpkgs.legacyPackages.${system};
 
-        watch = pkgs.writeShellScriptBin "watch" ''
+        watch = pkgs.writeShellScriptBin "W" ''
           exec ${pkgs.watchexec}/bin/watchexec -n \
             -- make "$@"
         '';
-      in {
-        devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            gnumake
-            lua-language-server
-            luajitPackages.luacheck
-            panvimdoc
-            watch
-            watchexec
-          ];
-        };
+      in
+        with pkgs; {
+          devShells.default = mkShell {
+            buildInputs = [
+              gnumake
+              lua-language-server
+              luajitPackages.luacheck
+              panvimdoc
+              watch
+              watchexec
+            ];
+          };
 
-        formatter = pkgs.writeShellScriptBin "fmt" ''
-          exec ${pkgs.alejandra}/bin/alejandra -q "$@";
-        '';
-      }
+          devShells.web = mkShell {
+            FONTCONFIG_FILE = makeFontsConf {
+              fontDirectories = [
+                quicksand
+                dejavu_fonts
+              ];
+            };
+
+            buildInputs = [
+              bash
+              ffmpeg-full
+              libfaketime
+              neovim
+              pandoc
+              pango
+              xdotool
+              xterm
+              xvfb
+            ];
+          };
+
+          formatter = writeShellScriptBin "fmt" ''
+            exec ${alejandra}/bin/alejandra -q "$@";
+          '';
+        }
     );
 }

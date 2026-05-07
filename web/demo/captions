@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+INPUT_VIDEO=$1
+OUTPUT_VIDEO=$2
+
+OUTPUT_DIR="$WORKDIR/captions"
+
+mkdir -p "$OUTPUT_DIR"
+
+ffmpeg_filter=''
+ffmpeg_inputs=()
+
+# ========
+# Captions
+
+lastlink=0
+inputnum=1
+
+caption() {
+    local start=$1
+    local duration=$2
+    local text=$3
+
+    local args=(
+        --background=transparent
+        --no-display
+        --align=center
+        --font "Quicksand, 40"
+        --foreground "#ff7755"
+        --line-spacing 1.1
+        --markup
+        --text "$text"
+    )
+
+    local output
+    output=$(sha1sum <<<"${args[*]}")
+    output="$OUTPUT_DIR/${output:0:16}.png"
+
+    if [ ! -f "$output" ]
+    then
+        ( set -x; pango-view "${args[@]}" --output "$output"; )
+    fi
+
+    ffmpeg_inputs+=(-i "$output")
+
+    local link="l$inputnum"
+    local transition=0.75
+
+    ffmpeg_filter+="
+        [$inputnum] eq=brightness=-0.8:saturation=0.7, boxblur=1 [d$inputnum] ;
+        [d$inputnum][$inputnum] overlay=-3:-3:format=yuv444 [s$inputnum] ;
+
+        [$lastlink][s$inputnum]
+            overlay
+                = enable = 'between(t, $start - $transition, $start + $duration + $transition)'
+                : format=yuv444
+                : x = '(W-w) / 2
+                    - lt(t, $start)
+                        * sin(PI/2 * ($start - t) / $transition) * (W + w) / 2
+                    + gt(t, $start + $duration)
+                        * sin(PI/2 * (t - $start - $duration) / $transition) * (W + w) / 2
+                    '
+                : y = 'H * 0.1'
+                : eof_action = repeat
+                [$link]
+                ;
+    "
+
+    inputnum=$((inputnum + 1))
+    lastlink=$link
+}
+
+caption 0 0.5 $'<b><span color="#ee4411" size="80pt">Ceramicist</span></b>'
+caption 1 6 $'<b>Run programs directly from\nNeovim\'s command line</b>'
+caption 8 6 $'<b>Repeat last command when\narguments are omitted</b>'
+caption 16 9 $'<b><span color="#ee4411" size="larger">Watch Mode</span>\nRepeat commands after\nwriting changes</b>'
+caption 30 10 $'<b>Show exit codes\nand signal names</b>'
+caption 43 9 $'<b>Multiple sessions in\ndifferent windows</b>'
+
+
+# =============================
+# Update video with annotations
+
+ffmpeg_filter+="
+    [$lastlink] split [ll0] [ll1] ;
+
+    [ll0]
+        scale
+            = w = 1.2 * iw
+            : h = 1.2 * ih
+        , crop
+            = w = 'st(0, floor(iw * 0.9)); ld(0) - mod(ld(0), 2)'
+            : h = 'st(0, floor(ih * 0.9)); ld(0) - mod(ld(0), 2)'
+            : x = iw * 0.1
+            : y = ih * 0.1
+        , boxblur = 50
+            [backdrop]
+            ;
+
+    [backdrop] [ll1]
+        overlay
+            = x = (W - w) / 2
+            : y = (H - h) / 2
+            [output]
+"
+
+
+args=(
+    -hide_banner
+    -y
+    -nostdin
+    -i "$INPUT_VIDEO"
+    "${ffmpeg_inputs[@]}"
+    -filter_complex "$ffmpeg_filter"
+    -map '[output]'
+    -c:v libx264
+    -crf 1
+)
+
+set -x
+ffmpeg "${args[@]}" "$OUTPUT_VIDEO"

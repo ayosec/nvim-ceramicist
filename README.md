@@ -364,6 +364,8 @@ The configuration example below:
 - Uses custom highlights for the different components of the footer.
 - Add some key mappings to the session's buffer.
 
+<!-- demo-config -->
+
 ```lua
 vim.api.nvim_set_hl(0, "CeramicistNormal", { bg = "#001429" })
 
@@ -384,7 +386,7 @@ vim.api.nvim_set_hl(0, "CeramicistStatusLineRunning", { bg = "#702000" })
 
 local utils = require("ceramicist.utils")
 
-local context = ceramicist.setup({
+local context = require("ceramicist").setup({
     user_command = { name = "C" },
 
     output = {
