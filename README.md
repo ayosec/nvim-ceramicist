@@ -1,14 +1,6 @@
 <!-- panvimdoc-ignore-start -->
 
-<h1 align="center">
-    <p>
-        <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="./web/dark-logo.svg">
-          <img alt="Logo" width="250" height="300" src="./web/logo.svg">
-        </picture>
-    </p>
-    <p>Ceramicist</p>
-</h1>
+<h1 align="center">Ceramicist</h1>
 
 <div align="center">
 
