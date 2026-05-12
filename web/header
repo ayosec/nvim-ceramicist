@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+shopt -s lastpipe
+
+VIDEO_PATH=$1
+
+width=''
+height=''
+
+ffprobe -loglevel error -i "$VIDEO_PATH" -of flat -show_entries 'stream=width,height' |
+while IFS='=' read -r key value
+do
+    case "$key" in
+        *width) width=$value ;;
+        *height) height=$value ;;
+    esac
+done
+
+sed < "${0%/*}/header.html" "
+    s/VIDEO_URL/$(basename "$VIDEO_PATH")/g;
+    s/VIDEO_WIDTH/$width/g;
+    s/VIDEO_HEIGHT/$height/g;
+"

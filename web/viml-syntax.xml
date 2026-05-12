@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE language>
+
+<language name="vim">
+    <highlighting>
+        <list name="keywords">
+            <item>C</item>
+            <item>Ceramicist</item>
+            <item>2Ceramicist</item>
+            <item>Ceramicist2</item>
+        </list>
+        <contexts>
+            <context name="default" attribute="Normal" lineEndContext="#stay">
+                <DetectSpaces/>
+                <keyword attribute="Keyword" context="#stay" String="keywords"/>
+                <DetectChar attribute="Comment" context="Cmmnt" char="&quot;" />
+                <AnyChar attribute="Symbol" context="#stay" String=":!"/>
+            </context>
+            <context attribute="Comment" lineEndContext="#pop" name="Cmmnt">
+                <DetectSpaces />
+                <IncludeRules context="##Comments"/>
+            </context>
+        </contexts>
+        <itemDatas>
+            <itemData name="Comment" defStyleNum="dsComment"/>
+            <itemData name="Symbol" defStyleNum="dsSpecialChar"/>
+            <itemData name="Keyword" defStyleNum="dsFunction"/>
+        </itemDatas>
+    </highlighting>
+    <general>
+        <comments>
+            <comment name="singleLine" start="&quot;"/>
+        </comments>
+    </general>
+</language>

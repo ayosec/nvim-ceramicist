@@ -10,10 +10,11 @@
 
 ---
 
-
 <!-- panvimdoc-ignore-end -->
 
 ## Introduction
+
+<!-- website-start -->
 
 Ceramicist is Neovim plugin to execute shell commands (like `:!`) and display
 their output in a dedicated window. It is similar to the [terminal] available in

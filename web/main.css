@@ -1,0 +1,163 @@
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap');
+
+* {
+    box-sizing: border-box;
+}
+
+:root {
+    color-scheme: dark;
+}
+
+html, body {
+    font-family: sans-serif;
+    font-size: 14pt;
+
+    color: #eee;
+    background: #100505;
+
+    padding: 0;
+    margin: 0;
+}
+
+@media screen and (width >= 920px) {
+    body > header,
+    body > p,
+    body > ul,
+    body > nav > h2,
+    body > nav > ul,
+    body > h1,
+    body > h2,
+    body > h3,
+    .sourceCode > pre,
+    body > pre > code
+    {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+}
+
+@media screen and (width < 920px) {
+    body > header,
+    body > p,
+    body > ul,
+    body > nav > h2,
+    body > nav > ul,
+    body > h1,
+    body > h2,
+    body > h3,
+    .sourceCode > pre,
+    body > pre > code
+    {
+        margin: 0 20px;
+    }
+
+    header > h1 {
+        font-size: 1rem;
+    }
+
+    h1, h2, h3, h4 {
+        padding: 0 20px;
+    }
+}
+
+header {
+    font-family: "Quicksand", sans-serif;
+    padding-bottom: min(6rem, max(10vw, 4rem));
+}
+
+header > h1 {
+    color: #fda;
+    overflow: hidden;
+    text-align: center;
+    font-size: 4rem;
+    margin-bottom: 0;
+}
+
+@media screen and (width < 300px) { header > h1 { font-size: 1rem; } }
+@media screen and (width >= 300px) and (width < 600px) { header > h1 { font-size: 2rem; } }
+@media screen and (width >= 600px) and (width < 900px) { header > h1 { font-size: 3rem; } }
+
+header > h1 + p {
+    color: #ea9;
+    font-weight: bold;
+    font-size: 1rem;
+    text-align: center;
+}
+
+header > video {
+    border-radius: 10px;
+    max-width: 100%;
+    height: auto;
+}
+
+h1, h2, h3, h4 {
+    overflow: auto;
+}
+
+body > h2 {
+    font-size: 2rem;
+    margin: 4rem auto 1rem;
+    border-bottom: 1px solid;
+}
+
+body > h3 {
+    font-size: 1.4rem;
+    margin: 2rem auto;
+}
+
+a {
+    color: #fda;
+    text-decoration-color: #752;
+}
+
+nav {
+    margin-top: 100px;
+    background: #050007;
+    padding-bottom: 20px;
+}
+
+body > nav > h2 {
+    padding: 20px;
+}
+
+nav li {
+    list-style: decimal;
+}
+
+nav li::marker {
+    color: #777;
+}
+
+nav li a {
+    color: #fff;
+    text-decoration: none;
+    display: block;
+}
+
+a:hover, a:focus {
+    color: #f00;
+    outline: none;
+    text-decoration: underline;
+    text-decoration-color: unset;
+}
+
+p, li {
+    line-height: 1.6;
+}
+
+body > pre > code {
+    display: block;
+}
+
+p > code, li > code {
+    color: #FCC;
+    word-break: break-all;
+}
+
+pre {
+    padding: 20px 0;
+}
+
+pre, body > .sourceCode {
+    background: #050000;
+}

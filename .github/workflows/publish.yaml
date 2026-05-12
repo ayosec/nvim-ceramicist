@@ -1,0 +1,54 @@
+name: Upload to GH Pages
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v21
+        with:
+          determinate: false
+
+      - name: Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+        with:
+          use-flakehub: false
+
+      - name: Build
+        run: |
+          set -xeuo pipefail
+          mkdir TARGET
+          nix develop .#web --command web/demo/run.sh TARGET/demo.mp4
+          nix develop .#web --command web/render.sh TARGET TARGET/demo.mp4
+
+      - name: Upload website
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: TARGET
+
+  deploy:
+    needs: build
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
