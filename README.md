@@ -438,3 +438,18 @@ vim.api.nvim_create_autocmd("User", {
     end
 })
 ```
+
+<!-- panvimdoc-ignore-start -->
+
+## Alternatives
+
+There are many plugins providing a similar functionality to Ceramicist. This is a non-exhaustive list of alternatives:
+
+* [command-runner.nvim](https://github.com/marzeq/command-runner.nvim)
+* [como.nvim](https://github.com/JordenHuang/como.nvim)
+* [compile-mode.nvim](https://github.com/ring0-rootkit/compile-mode.nvim)
+* [erun.nvim](https://github.com/kotsmile/erun.nvim)
+* [overseer.nvim](https://github.com/stevearc/overseer.nvim)
+* [taskrun.nvim](https://github.com/yutkat/taskrun.nvim)
+
+<!-- panvimdoc-ignore-end -->
