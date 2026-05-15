@@ -46,7 +46,7 @@ do
 
         status=31mFAIL
         exitcode=1
-        if timeout 30s nvim --clean --headless -c "set rtp^=$PWD" -l "$test"
+        if timeout 30s nvim -u NONE --clean --headless -c "set rtp^=$PWD" -l "$test"
         then
             status=32mOK
             exitcode=0
