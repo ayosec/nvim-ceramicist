@@ -53,6 +53,6 @@ PIDS+=($!)
 waitfile "$NVIM_SIGNAL"
 
 record="$WORKDIR/record.nut"
-"$SRC/record-x11" $X11_DISPLAY "$record" 55
+"$SRC/record-x11" $X11_DISPLAY "$record" 60
 
 "$SRC/captions" "$record" "$VIDEO_OUTPUT"

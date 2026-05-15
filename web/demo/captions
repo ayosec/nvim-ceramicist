@@ -75,9 +75,10 @@ caption() {
 caption 0 0.5 $'<b><span color="#ee4411" size="80pt">Ceramicist</span></b>'
 caption 1 6 $'<b>Run programs directly from\nNeovim\'s command line</b>'
 caption 8 6 $'<b>Repeat last command when\narguments are omitted</b>'
-caption 16 9 $'<b><span color="#ee4411" size="larger">Watch Mode</span>\nRepeat commands after\nwriting changes</b>'
-caption 30 10 $'<b>Show exit codes\nand signal names</b>'
-caption 43 9 $'<b>Multiple sessions in\ndifferent windows</b>'
+caption 16 4 $'<b>Keep previous output in scrollback</b>'
+caption 21 9 $'<b><span color="#ee4411" size="larger">Watch Mode</span>\nRepeat commands after\nwriting changes</b>'
+caption 35 10 $'<b>Show exit codes\nand signal names</b>'
+caption 48 9 $'<b>Multiple sessions in\ndifferent windows</b>'
 
 
 # =============================

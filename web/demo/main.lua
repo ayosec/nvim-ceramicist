@@ -58,8 +58,17 @@ local sections = {
         t(1000, "<Cr>")
     end,
     function()
+        sleep(18000)
+        local lines = vim.api.nvim_buf_line_count(0)
+        local delay = 2000 / lines
+        for _ = 1, lines do
+            sleep(delay)
+            vim.api.nvim_feedkeys("k", "m", false)
+        end
+    end,
+    function()
         -- Watch mode.
-        t(20000, ":CeramicistToggleWatch")
+        t(25000, ":CeramicistToggleWatch")
         t(1000, "<Cr>")
         sleep(500)
         vim.api.nvim_input("<C-w><C-w>")
@@ -73,13 +82,13 @@ local sections = {
     end,
     function()
         -- Show signals.
-        t(35000, ":C ")
+        t(40000, ":C ")
         t(700, "<Cr>")
         t(1000, "<C-C>")
     end,
     function()
         -- Different sessions
-        t(45000, ":vert 2C wc -l run-tests")
+        t(50000, ":vert 2C wc -l run-tests")
         t(1000, "<Cr>")
     end,
 }

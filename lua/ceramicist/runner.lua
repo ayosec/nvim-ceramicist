@@ -7,10 +7,6 @@ local M = {}
 local function emit_header(config, session, cmdline)
     if session.term_channel_id == nil then return end
 
-    if session.last_job ~= nil then
-        session.add_empty_lines(config.output.gap)
-    end
-
     session.add_extmark {
         hl_mode = "combine",
         line_hl_group = config.highlight_name_prefix .. "Header",
@@ -75,13 +71,19 @@ function M.run(context, cwd, session, cmdline, replace, grab_window_focus, win_o
         end
     end
 
-    -- The band modifier clears the content of the terminal before
-    -- executing the job.
-    if replace and session.term_channel_id ~= nil then
-        session.clear()
-    end
-
-    if session.term_channel_id == nil then
+    if session.term_channel_id ~= nil then
+        if replace then
+            -- The bang modifier clears the scrollback before executing
+            -- the job.
+            session.clear()
+        else
+            -- If there is lines from previous jobs, push it to scrollback
+            -- by adding empty lines, and then reset with a RIS.
+            local offset = vim.fn.winheight(window) + config.output.gap
+            local line = string.rep("\r\n", offset) .. "\x1bc"
+            vim.api.nvim_chan_send(session.term_channel_id, line)
+        end
+    else
         -- Initialize the terminal after creating the window.
         session.term_channel_id = vim.api.nvim_open_term(session.buffer, {
             on_input = function (_, _, _, data)
@@ -138,12 +140,6 @@ function M.run(context, cwd, session, cmdline, replace, grab_window_focus, win_o
         cmdline = cmdline,
         cwd = cwd,
     }
-
-    -- If the program running in the job tries to change the cursor
-    -- position (CUP), or to erase the display (DECSED), the window
-    -- adds empty lines to push the current output to the scrollback,
-    -- only once per job.
-    local win_cleared = false
 
     job_id = vim.fn.jobstart(
         config.job_command(cmdline),
@@ -236,28 +232,6 @@ function M.run(context, cwd, session, cmdline, replace, grab_window_focus, win_o
                 if chan_id == nil then return end
 
                 for i, line in ipairs(data) do
-                    if not win_cleared then
-                        -- Check if the line contains a CUP or DECSED sequence,
-                        -- and add empty lines before it.
-                        --
-                        -- This solution is very naïve, and does not cover every
-                        -- case, but it works well enough.
-                        --
-                        -- Limit to chunks of 256 bytes to reduce the performance
-                        -- impact when the process is writing a lot of data.
-                        if #data <= 256 then
-                            local idx = string.find(line, "\x1B%[[0-9;]*[HJ]")
-                            if idx ~= nil then
-                                win_cleared = true
-
-                                local winh = vim.fn.winheight(window)
-                                line = string.sub(line, 1, idx - 1)
-                                        .. string.rep("\r\n", winh)
-                                        .. string.sub(line, idx)
-                            end
-                        end
-                    end
-
                     if i > 1 then
                         line = "\n" .. line
                     end
